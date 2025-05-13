@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  BUSINESS_OWNER
+  STAFF
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+enum SmsStatus {
+  QUEUED
+  DELIVERED
+  FAILED
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  PRO
+}
+
+model Business {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  phone     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  users        User[]
+  customers    Customer[]
+  invites      Invite[]
+  smsLogs      SmsLog[]
+  subscription Subscription?
+
+  @@map("businesses")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  authId     String   @unique @map("auth_id")
+  email      String   @unique
+  role       UserRole @default(STAFF)
+  businessId String?  @map("business_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @map("updated_at")
+
+  business Business? @relation(fields: [businessId], references: [id])
+
+  @@map("users")
+}
+
+model Customer {
+  id         String   @id @default(uuid())
+  businessId String   @map("business_id")
+  firstName  String?  @map("first_name")
+  lastName   String?  @map("last_name")
+  email      String?
+  phone      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id])
+  invites  Invite[]
+  smsLogs  SmsLog[]
+
+  @@unique([businessId, email])
+  @@map("customers")
+}
+
+model Invite {
+  id         String       @id @default(uuid())
+  businessId String       @map("business_id")
+  customerId String?      @map("customer_id")
+  status     InviteStatus @default(PENDING)
+  token      String       @unique
+  createdAt  DateTime     @default(now()) @map("created_at")
+  expiresAt  DateTime     @map("expires_at")
+  metadata   Json         @default("{}")
+
+  business Business  @relation(fields: [businessId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  smsLogs  SmsLog[]
+
+  @@map("invites")
+}
+
+model Subscription {
+  id                   String           @id @default(uuid())
+  businessId           String           @unique @map("business_id")
+  plan                 SubscriptionPlan @default(FREE)
+  stripeSubscriptionId String?          @map("stripe_subscription_id")
+  currentPeriodStart   DateTime?        @map("current_period_start")
+  currentPeriodEnd     DateTime?        @map("current_period_end")
+  status               String
+  usageLimits          Json             @default("{}") @map("usage_limits")
+  inviteLimit          Int              @map("invite_limit")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @default(now()) @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@map("subscriptions")
+}
+
+model SmsLog {
+  id         String    @id @default(uuid())
+  businessId String    @map("business_id")
+  customerId String    @map("customer_id")
+  inviteId   String?   @map("invite_id")
+  twilioSid  String?   @map("twilio_sid")
+  status     SmsStatus @default(QUEUED)
+  message    String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @default(now()) @map("updated_at")
+
+  business Business @relation(fields: [businessId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  invite   Invite?  @relation(fields: [inviteId], references: [id])
+
+  @@map("sms_logs")
+}
