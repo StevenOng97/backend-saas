@@ -42,6 +42,7 @@ Create a `.env` file in the root directory with the following contents:
 # Supabase Database
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/backend_saas?schema=public"
 PORT=4200
+BACKEND_URL=http://localhost:4200
 
 # JWT Auth
 JWT_SECRET="super-secret-jwt-token-for-backend-saas"
