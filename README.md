@@ -176,10 +176,6 @@ npm run simulate:twilio
 
 ## Testing
 
-This project includes comprehensive unit and integration tests in the `test` directory.
-
-### Unit Tests
-
 Run the unit tests with:
 
 ```bash
@@ -187,13 +183,3 @@ npm run test:unit
 ```
 
 These tests are located in the `test` directory with the `.unit-spec.ts` suffix and test individual components in isolation with proper mocking.
-
-### Integration Tests
-
-Run the integration tests with:
-
-```bash
-npm run test:unit
-```
-
-These are located in the `test` directory with the `.integration.spec.ts` suffix and test how multiple components work together.
