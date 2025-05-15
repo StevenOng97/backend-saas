@@ -1,13 +1,11 @@
 #!/bin/bash
 
 # Start the main application in the background
-node dist/main &
-
-# Store the PID of the main application
+npm run start:prod &
 MAIN_APP_PID=$!
 
-# Start the worker
-node dist/workers/bull.worker.js &
+# Start the worker using the npm script
+npm run worker &
 WORKER_PID=$!
 
 # Function to handle signals
