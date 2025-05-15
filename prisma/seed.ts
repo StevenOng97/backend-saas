@@ -48,7 +48,7 @@ async function main() {
       authId: crypto.randomUUID(),
       email: 'owner@business.com',
       password: hashedPassword,
-      role: UserRole.BUSINESS_OWNER,
+      role: UserRole.ADMIN,
       businessId: business.id,
     },
   });
