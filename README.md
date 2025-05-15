@@ -8,6 +8,7 @@ This is a NestJS backend implementation for the mini-project requirements. It im
 - Prisma ORM (PostgreSQL)
 - BullMQ + Upstash Redis (serverless Redis)
 - JWT Authentication
+- Resend for Email Delivery
 
 ## Setup Requirements
 
@@ -16,6 +17,7 @@ This is a NestJS backend implementation for the mini-project requirements. It im
 - Node.js (v18+)
 - Supabase account
 - Upstash Redis account
+- Resend account
 
 ### Setting Up PostgreSQL & Redis
 
@@ -34,6 +36,12 @@ This is a NestJS backend implementation for the mini-project requirements. It im
 3. Copy the REST API details (URL and Token)
 4. Add these to your environment variables
 
+### Setting Up Resend for Email Service
+
+1. Sign up for a free account at [Resend](https://resend.com/)
+2. Navigate to API Keys and create a new API key
+3. Copy the API key and add it to your environment variables
+
 ### Environment Variables
 
 Create a `.env` file in the root directory with the following contents:
@@ -51,6 +59,16 @@ JWT_SECRET="super-secret-jwt-token-for-backend-saas"
 UPSTASH_REDIS_URL="https://your-endpoint.upstash.io"
 UPSTASH_REDIS_TOKEN="your-upstash-token"
 UPSTASH_REDIS_PORT=6379
+
+# Mail Configuration
+MAIL_FROM="no-reply@yourdomain.com"
+FRONTEND_URL="http://localhost:3000"
+RESEND_API_KEY="your-resend-api-key"
+
+# Google OAuth (if using Google authentication)
+GOOGLE_CLIENT_ID="your-client-id"
+GOOGLE_CLIENT_SECRET="your-client-secret"
+GOOGLE_CALLBACK_URL="http://localhost:4200/auth/google/callback"
 ```
 
 ## Installation & Setup

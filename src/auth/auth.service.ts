@@ -1,0 +1,254 @@
+import { Injectable, BadRequestException, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
+import * as bcrypt from 'bcrypt';
+import cryptoRandomString from 'crypto-random-string';
+import { SignUpDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, TokenResponseDto } from './dto/auth.dto';
+import { UserRole } from '@prisma/client';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private prisma: PrismaService,
+    private jwtService: JwtService,
+    private mailService: MailService,
+  ) {}
+
+  // Helper function to create JWT token
+  private createToken(userId: string): string {
+    const payload = { sub: userId };
+    return this.jwtService.sign(payload);
+  }
+
+  // Helper function to select safe user fields
+  private async getUserSafeFields(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        businessId: true,
+      },
+    });
+  }
+
+  // Validate user for local strategy
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user || !user.password) {
+      return null;
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return null;
+    }
+
+    return this.getUserSafeFields(user.id);
+  }
+
+  // Sign up new user
+  async signUp(signUpDto: SignUpDto): Promise<{ message: string }> {
+    const { email, password, firstName, lastName } = signUpDto;
+
+    // Check if user already exists
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Generate verification token
+    const verificationToken = cryptoRandomString({ length: 32, type: 'url-safe' });
+
+    // Create user
+    await this.prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        role: UserRole.ADMIN,
+        verificationToken,
+      },
+    });
+
+    return { message: 'User registered successfully.' };
+  }
+
+  // Login user
+  async login(loginDto: LoginDto): Promise<TokenResponseDto> {
+    const { email, password } = loginDto;
+
+    // Use the validateUser method to check credentials
+    const user = await this.validateUser(email, password);
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const accessToken = this.createToken(user.id);
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      },
+    };
+  }
+
+  // Request password reset
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string }> {
+    const { email } = forgotPasswordDto;
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new NotFoundException('No account found with this email');
+    }
+
+    // Generate reset token
+    const resetToken = cryptoRandomString({ length: 32, type: 'url-safe' });
+
+    // Calculate expiration (1 hour from now)
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 1);
+
+    // Delete any existing reset tokens for this user
+    await this.prisma.passwordReset.deleteMany({
+      where: { userId: user.id },
+    });
+
+    // Create new password reset record
+    await this.prisma.passwordReset.create({
+      data: {
+        userId: user.id,
+        token: resetToken,
+        expiresAt,
+      },
+    });
+
+    // Send password reset email
+    await this.mailService.sendPasswordResetEmail(
+      email,
+      resetToken,
+    );
+
+    return { message: 'Password reset instructions sent to your email' };
+  }
+
+  // Reset password with token
+  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+    const { token, password } = resetPasswordDto;
+
+    // Find the password reset record
+    const passwordReset = await this.prisma.passwordReset.findFirst({
+      where: {
+        token,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    if (!passwordReset) {
+      throw new BadRequestException('Invalid or expired token');
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt();
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update the user's password
+    await this.prisma.user.update({
+      where: { id: passwordReset.userId },
+      data: {
+        password: hashedPassword,
+      },
+    });
+
+    // Delete the password reset record
+    await this.prisma.passwordReset.delete({
+      where: { id: passwordReset.id },
+    });
+
+    return { message: 'Password reset successful. You can now log in with your new password.' };
+  }
+
+  // Google OAuth login/signup
+  async googleLogin(googleUser: any): Promise<TokenResponseDto> {
+    const { googleId, email, firstName, lastName } = googleUser;
+
+    // Check if user already exists by Google ID
+    let user = await this.prisma.user.findUnique({
+      where: { googleId },
+    });
+
+    // If not found by Google ID, try email
+    if (!user) {
+      user = await this.prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (user) {
+        // Link existing account to Google
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: {
+            googleId,
+          },
+        });
+      } else {
+        // Create new user
+        user = await this.prisma.user.create({
+          data: {
+            googleId,
+            email,
+            firstName,
+            lastName,
+            role: UserRole.ADMIN,
+          },
+        });
+      }
+    }
+
+    // Get safe user data
+    const safeUser = await this.getUserSafeFields(user.id);
+    
+    // Generate JWT token
+    const accessToken = this.createToken(user.id);
+
+    return {
+      accessToken,
+      user: {
+        id: safeUser?.id || '',
+        email: safeUser?.email || '',
+        firstName: safeUser?.firstName || '',
+        lastName: safeUser?.lastName || '',
+        role: safeUser?.role || '',
+      },
+    };
+  }
+} 

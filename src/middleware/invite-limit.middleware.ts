@@ -7,7 +7,18 @@ export class InviteLimitMiddleware implements NestMiddleware {
   constructor(private prisma: PrismaService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    const business = req['business'];
+    // Get business ID from authenticated user that Passport added to the request
+    const user = req.user as any;
+    
+    if (!user || !user.businessId) {
+      throw new HttpException('User not associated with a business', HttpStatus.BAD_REQUEST);
+    }
+    
+    // Fetch the business with subscription
+    const business = await this.prisma.business.findUnique({
+      where: { id: user.businessId },
+      include: { subscription: true },
+    });
     
     if (!business || !business.subscription) {
       throw new HttpException('Business subscription not found', HttpStatus.BAD_REQUEST);

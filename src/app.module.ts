@@ -8,6 +8,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { getUpstashConnectionOptions } from './config/upstash.config';
 import { InvitesModule } from './invites/invites.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { AuthModule } from './auth/auth.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -19,6 +21,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
       useFactory: (configService: ConfigService) => {
         // Check if we should use Upstash or local Redis
         if (configService.get('UPSTASH_REDIS_URL') && configService.get('UPSTASH_REDIS_TOKEN')) {
+          // For Upstash, we need to use custom connection
           return {
             redis: {
               ...getUpstashConnectionOptions(configService),
@@ -45,6 +48,8 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     PrismaModule,
     InvitesModule,
     WebhooksModule,
+    AuthModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
