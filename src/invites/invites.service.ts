@@ -3,14 +3,17 @@ import { InjectQueue } from '@nestjs/bull';
 import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { MailService } from '../mail/mail.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { InviteStatus } from '@prisma/client';
+
 @Injectable()
 export class InvitesService {
   private readonly logger = new Logger(InvitesService.name);
 
   constructor(
     private prisma: PrismaService,
+    private mailService: MailService,
     @InjectQueue('sms') private smsQueue: Queue,
   ) {}
 
@@ -48,6 +51,16 @@ export class InvitesService {
     });
 
     this.logger.log(`Created invite for customer ${customerId}: ${invite.id}`);
+
+    // Send invite email if email is provided
+    // if (email) {
+    //   await this.mailService.sendInviteEmail(
+    //     email,
+    //     token,
+    //     message || 'You have been invited to join our platform.'
+    //   );
+    //   this.logger.log(`Invite email sent to ${email}`);
+    // }
 
     // Enqueue SMS job
     const job = await this.smsQueue.add(

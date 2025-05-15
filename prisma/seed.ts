@@ -1,6 +1,8 @@
 import * as crypto from 'crypto';
 import prisma from '../lib/prisma';
 import { SubscriptionPlan, UserRole } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
+
 async function main() {
   console.log('Seeding the database...');
 
@@ -37,11 +39,15 @@ async function main() {
 
   console.log('Created subscription:', subscription);
 
+  const password = 'Test@1234';
+  const hashedPassword = await bcrypt.hash(password, 10);
+
   // Create a user for the business
   const user = await prisma.user.create({
     data: {
       authId: crypto.randomUUID(),
       email: 'owner@business.com',
+      password: hashedPassword,
       role: UserRole.BUSINESS_OWNER,
       businessId: business.id,
     },
@@ -83,4 +89,4 @@ main()
     console.error(e);
     await prisma.$disconnect();
     process.exit(1);
-  }); 
+  });
