@@ -17,7 +17,7 @@ export class InvitesService {
     @InjectQueue('sms') private smsQueue: Queue,
   ) {}
 
-  async create(businessId: string, createInviteDto: CreateInviteDto) {
+  async create(businessId: string, organizationId: string, createInviteDto: CreateInviteDto) {
     const { customerId, message } = createInviteDto;
 
     // Verify customer exists and belongs to business
@@ -43,6 +43,7 @@ export class InvitesService {
     const invite = await this.prisma.invite.create({
       data: {
         businessId,
+        organizationId,
         customerId,
         token,
         expiresAt,

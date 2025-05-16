@@ -20,8 +20,12 @@ export class InvitesController {
       });
     }
 
-    const result = await this.invitesService.create(businessId, createInviteDto);
-    
+    const result = await this.invitesService.create(
+      businessId,
+      req.user.organizationId,
+      createInviteDto,
+    );
+
     return res.status(HttpStatus.ACCEPTED).json({
       message: 'Invite created and SMS queued for delivery',
       ...result,

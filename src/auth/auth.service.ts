@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
-import cryptoRandomString from 'crypto-random-string';
+import randomstring from 'randomstring';
 import { SignUpDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, TokenResponseDto } from './dto/auth.dto';
 import { UserRole } from '@prisma/client';
 
@@ -31,7 +31,7 @@ export class AuthService {
         firstName: true,
         lastName: true,
         role: true,
-        businessId: true,
+        organizationId: true,
       },
     });
   }
@@ -71,8 +71,10 @@ export class AuthService {
     const salt = await bcrypt.genSalt();
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Generate verification token
-    const verificationToken = cryptoRandomString({ length: 32, type: 'url-safe' });
+    // Create organization
+    const organization = await this.prisma.organization.create({
+      data: {},
+    });
 
     // Create user
     await this.prisma.user.create({
@@ -82,7 +84,7 @@ export class AuthService {
         firstName,
         lastName,
         role: UserRole.ADMIN,
-        verificationToken,
+        organizationId: organization.id,
       },
     });
 
@@ -127,7 +129,10 @@ export class AuthService {
     }
 
     // Generate reset token
-    const resetToken = cryptoRandomString({ length: 32, type: 'url-safe' });
+    const resetToken = randomstring.generategenerate({
+      length: 32,
+      charset: 'alphanumeric'
+    });
 
     // Calculate expiration (1 hour from now)
     const expiresAt = new Date();
@@ -221,6 +226,11 @@ export class AuthService {
           },
         });
       } else {
+        // Create organization
+        const organization = await this.prisma.organization.create({
+          data: {},
+        });
+
         // Create new user
         user = await this.prisma.user.create({
           data: {
@@ -229,6 +239,7 @@ export class AuthService {
             firstName,
             lastName,
             role: UserRole.ADMIN,
+            organizationId: organization.id,
           },
         });
       }

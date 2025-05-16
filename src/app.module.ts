@@ -10,6 +10,7 @@ import { InvitesModule } from './invites/invites.module';
 import { WebhooksModule } from './webhooks/webhooks.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
+import { BusinessModule } from './business/business.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { MailModule } from './mail/mail.module';
     WebhooksModule,
     AuthModule,
     MailModule,
+    BusinessModule,
   ],
   controllers: [AppController],
   providers: [AppService],
