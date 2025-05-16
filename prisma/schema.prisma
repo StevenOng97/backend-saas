@@ -55,7 +55,7 @@ model Business {
   name                        String
   email                       String?
   phone                       String?
-  google_business_review_link String?
+  googleBusinessReviewLink    String?  @map("google_business_review_link")
   organizationId              String   @map("organization_id")
   isMainLocation              Boolean  @default(false) @map("is_main_location")
   createdAt                   DateTime @default(now()) @map("created_at")

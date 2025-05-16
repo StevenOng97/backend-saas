@@ -5,7 +5,7 @@ export class CreateBusinessDto {
   @IsString()
   name: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsEmail()
   email: string;
 
@@ -15,5 +15,5 @@ export class CreateBusinessDto {
 
   @IsOptional()
   @IsString()
-  google_business_review_link?: string;
+  googleBusinessReviewLink?: string;
 } 
