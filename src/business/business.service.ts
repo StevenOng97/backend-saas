@@ -13,6 +13,7 @@ export class BusinessService {
 
   async create(createBusinessDto: CreateBusinessDto, currentUser: User) {
     // Only ADMIN users can create new businesses
+    const defaultIsMainLocation = createBusinessDto.isMainLocation || true;
     if (currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException(
         'Only administrators can create new businesses',
@@ -23,6 +24,7 @@ export class BusinessService {
       data: {
         ...createBusinessDto,
         organizationId: currentUser.organizationId,
+        isMainLocation: defaultIsMainLocation,
       },
     });
 
