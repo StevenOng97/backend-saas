@@ -38,12 +38,13 @@ enum SubscriptionPlan {
 }
 
 model Business {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  phone     String?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @map("updated_at")
+  id                          String   @id @default(uuid())
+  name                        String
+  email                       String   @unique
+  phone                       String?
+  google_business_review_link String?
+  createdAt                   DateTime @default(now()) @map("created_at")
+  updatedAt                   DateTime @default(now()) @map("updated_at")
 
   users        User[]
   customers    Customer[]
@@ -68,8 +69,8 @@ model User {
   passwordResets    PasswordReset[]
   createdAt         DateTime        @default(now()) @map("created_at")
   updatedAt         DateTime        @default(now()) @map("updated_at")
-  
-  business          Business?       @relation(fields: [businessId], references: [id])
+
+  business Business? @relation(fields: [businessId], references: [id])
 
   @@map("users")
 }
@@ -80,8 +81,8 @@ model PasswordReset {
   token     String   @unique
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
-  
-  user      User     @relation(fields: [userId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
 
   @@map("password_resets")
 }
