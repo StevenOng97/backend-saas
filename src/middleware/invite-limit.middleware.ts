@@ -7,42 +7,57 @@ export class InviteLimitMiddleware implements NestMiddleware {
   constructor(private prisma: PrismaService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
-    // Get business ID from authenticated user that Passport added to the request
+    // Get user from authenticated user that Passport added to the request
     const user = req.user as any;
     
-    if (!user || !user.businessId) {
-      throw new HttpException('User not associated with a business', HttpStatus.BAD_REQUEST);
+    if (!user || !user.organizationId) {
+      throw new HttpException('User not associated with an organization', HttpStatus.BAD_REQUEST);
     }
     
-    // Fetch the business with subscription
+    // Get the business ID from request parameters or body
+    const businessId = req.params.businessId || req.body.businessId;
+    
+    if (!businessId) {
+      throw new HttpException('Business ID is required', HttpStatus.BAD_REQUEST);
+    }
+    
+    // Verify that the business belongs to the user's organization
     const business = await this.prisma.business.findUnique({
-      where: { id: user.businessId },
-      include: { subscription: true },
+      where: { id: businessId },
+      select: { organizationId: true }
     });
     
-    if (!business || !business.subscription) {
-      throw new HttpException('Business subscription not found', HttpStatus.BAD_REQUEST);
+    if (!business) {
+      throw new HttpException('Business not found', HttpStatus.NOT_FOUND);
+    }
+    
+    if (business.organizationId !== user.organizationId) {
+      throw new HttpException('Unauthorized to access this business', HttpStatus.FORBIDDEN);
+    }
+    
+    // Fetch the organization's subscription
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { organizationId: user.organizationId }
+    });
+    
+    if (!subscription) {
+      throw new HttpException('Organization subscription not found', HttpStatus.BAD_REQUEST);
     }
 
-    // Get the invite limit from the subscription
-    const { inviteLimit } = business.subscription;
-
-    // Get the current month's invites count
+    // Get the current month's invites count for the entire organization
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
     const inviteCount = await this.prisma.invite.count({
       where: {
-        businessId: business.id,
-        createdAt: {
-          gte: startOfMonth,
-        },
-      },
+        organizationId: user.organizationId,
+        createdAt: { gte: startOfMonth }
+      }
     });
-
+    
     // Check if the invite limit is reached
-    if (inviteCount >= inviteLimit) {
+    if (inviteCount >= subscription.inviteLimit) {
       throw new HttpException(
         'Monthly invite limit reached for your subscription plan',
         HttpStatus.TOO_MANY_REQUESTS,

@@ -20,30 +20,28 @@ export class BusinessService {
     }
 
     const business = await this.prisma.business.create({
-      data: createBusinessDto,
-    });
-    
-    await this.prisma.user.update({
-      where: { id: currentUser.id },
-      data: { businessId: business.id },
+      data: {
+        ...createBusinessDto,
+        organizationId: currentUser.organizationId,
+      },
     });
 
     return business;
   }
 
   async findAll(currentUser: User) {
-    if (!currentUser.businessId) {
+    if (!currentUser.organizationId) {
       return [];
     }
 
     return this.prisma.business.findMany({
-      where: { id: currentUser.businessId },
+      where: { organizationId: currentUser.organizationId },
     });
   }
 
   async findOne(id: string, currentUser: User) {
     // Validate user has access to this business
-    if (currentUser.businessId !== id) {
+    if (currentUser.organizationId !== id) {
       throw new ForbiddenException('You can only view your own business');
     }
 
@@ -64,7 +62,10 @@ export class BusinessService {
     currentUser: User,
   ) {
     // Validate user has access to this business
-    if (currentUser.role !== UserRole.ADMIN && currentUser.businessId !== id) {
+    if (
+      currentUser.role !== UserRole.ADMIN &&
+      currentUser.organizationId !== id
+    ) {
       throw new ForbiddenException('You can only update your own business');
     }
 
@@ -83,7 +84,10 @@ export class BusinessService {
 
   async remove(id: string, currentUser: User) {
     // Validate user has access to this business
-    if (currentUser.role !== UserRole.ADMIN && currentUser.businessId !== id) {
+    if (
+      currentUser.role !== UserRole.ADMIN &&
+      currentUser.organizationId !== id
+    ) {
       throw new ForbiddenException('Only administrators can delete businesses');
     }
 
@@ -97,11 +101,5 @@ export class BusinessService {
       }
       throw error;
     }
-  }
-
-  async findByEmail(email: string) {
-    return this.prisma.business.findUnique({
-      where: { email },
-    });
   }
 }

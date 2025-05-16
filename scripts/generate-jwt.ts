@@ -16,7 +16,7 @@ async function main() {
     // Get the first user in the database
     const user = await prisma.user.findFirst({
       include: {
-        business: true,
+        organization: true,
       },
     });
     
@@ -48,7 +48,7 @@ async function main() {
     console.log(`- ID: ${user.id}`);
     console.log(`- Email: ${user.email}`);
     console.log(`- Role: ${user.role}`);
-    console.log(`- Business ID: ${user.business?.id || 'N/A'}`);
+    console.log(`- Organization ID: ${user.organization?.id || 'N/A'}`);
 
   } catch (error) {
     console.error('Error generating JWT token:', error);

@@ -14,12 +14,18 @@ async function main() {
   await prisma.subscription.deleteMany({});
   await prisma.business.deleteMany({});
 
+  // Create an organization
+  const organization = await prisma.organization.create({
+    data: {},
+  });
+
   // Create a business
   const business = await prisma.business.create({
     data: {
       name: 'Demo Business',
       email: 'demo@business.com',
       phone: '+1234567890',
+      organizationId: organization.id,
     },
   });
 
@@ -28,7 +34,7 @@ async function main() {
   // Create a subscription for the business
   const subscription = await prisma.subscription.create({
     data: {
-      businessId: business.id,
+      organizationId: organization.id,
       plan: SubscriptionPlan.STARTER,
       status: 'active',
       inviteLimit: 3,
@@ -49,7 +55,7 @@ async function main() {
       email: 'owner@business.com',
       password: hashedPassword,
       role: UserRole.ADMIN,
-      businessId: business.id,
+      organizationId: organization.id,
     },
   });
 
