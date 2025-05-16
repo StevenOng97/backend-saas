@@ -15,19 +15,12 @@ export class BusinessOwnerGuard implements CanActivate {
     const user = request.user;
     const businessId = request.params.id;
 
-    // Admin users can access all businesses
-    if (user.role === UserRole.ADMIN) {
-      return true;
-    }
-
-    // If no business ID is provided in the route (e.g., for findAll or create),
-    // check if the user has a businessId (indicating they are a business owner)
-    if (!businessId) {
-      return user.businessId !== null;
-    }
+    const business = await this.prisma.business.findUnique({
+      where: { id: businessId, organizationId: user.organizationId },
+    });
 
     // For business-specific operations, check if the business ID matches the user's business
-    if (user.businessId !== businessId) {
+    if (!business) {
       throw new ForbiddenException('You can only interact with your own business');
     }
 
