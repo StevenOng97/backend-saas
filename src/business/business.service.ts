@@ -40,13 +40,8 @@ export class BusinessService {
   }
 
   async findOne(id: string, currentUser: User) {
-    // Validate user has access to this business
-    if (currentUser.organizationId !== id) {
-      throw new ForbiddenException('You can only view your own business');
-    }
-
     const business = await this.prisma.business.findUnique({
-      where: { id },
+      where: { id, organizationId: currentUser.organizationId },
     });
 
     if (!business) {
@@ -62,10 +57,7 @@ export class BusinessService {
     currentUser: User,
   ) {
     // Validate user has access to this business
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.organizationId !== id
-    ) {
+    if (currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException('You can only update your own business');
     }
 
@@ -84,10 +76,7 @@ export class BusinessService {
 
   async remove(id: string, currentUser: User) {
     // Validate user has access to this business
-    if (
-      currentUser.role !== UserRole.ADMIN &&
-      currentUser.organizationId !== id
-    ) {
+    if (currentUser.role !== UserRole.ADMIN) {
       throw new ForbiddenException('Only administrators can delete businesses');
     }
 
