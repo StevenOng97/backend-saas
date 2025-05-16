@@ -56,7 +56,7 @@ export class AuthController {
     const token = req.user;
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     
-    // Redirect to frontend with token
-    return res.redirect(`${frontendUrl}/auth/google-callback?token=${JSON.stringify(token)}`);
+    // Redirect to frontend homepage with token
+    return res.redirect(`${frontendUrl}/?token=${JSON.stringify(token)}`);
   }
 } 
