@@ -163,7 +163,7 @@ export class AuthService {
 
   // Reset password with token
   async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
-    const { token, password } = resetPasswordDto;
+    const { token, newPassword } = resetPasswordDto;
 
     // Find the password reset record
     const passwordReset = await this.prisma.passwordReset.findFirst({
@@ -184,7 +184,7 @@ export class AuthService {
 
     // Hash the new password
     const salt = await bcrypt.genSalt();
-    const hashedPassword = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
 
     // Update the user's password
     await this.prisma.user.update({

@@ -49,7 +49,7 @@ export class ResetPasswordDto {
   @Matches(/((?=.*\d)|(?=.*\W+))(?![.\n])(?=.*[A-Z])(?=.*[a-z]).*$/, {
     message: 'Password is too weak',
   })
-  password: string;
+  newPassword: string;
 }
 
 export class TokenResponseDto {
