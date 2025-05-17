@@ -42,14 +42,14 @@ export class AuthController {
   }
 
   // Google OAuth routes
-  @Get('google')
+  @Get('auth/google')
   @UseGuards(AuthGuard('google'))
   googleAuth() {
     // This route initiates Google OAuth flow
     // The guard handles the redirection to Google
   }
 
-  @Get('google/callback')
+  @Get('auth/google/callback')
   @UseGuards(AuthGuard('google'))
   googleAuthCallback(@Req() req: Request, @Res() res: Response) {
     // After successful Google authentication, redirect to frontend with token
