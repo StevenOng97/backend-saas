@@ -6,7 +6,7 @@ import { SignUpDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto/
 import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
-@Controller('auth')
+@Controller('')
 export class AuthController {
   constructor(
     private authService: AuthService,
@@ -24,12 +24,12 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @Post('forgot-password')
+  @Post('forgotpassword')
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto);
   }
 
-  @Post('reset-password')
+  @Post('resetpassword')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
