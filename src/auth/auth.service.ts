@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
-import randomstring from 'randomstring';
+import * as randomstring from 'randomstring';
 import { SignUpDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, TokenResponseDto } from './dto/auth.dto';
 import { UserRole } from '@prisma/client';
 
