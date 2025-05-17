@@ -129,7 +129,7 @@ export class AuthService {
     }
 
     // Generate reset token
-    const resetToken = randomstring.generategenerate({
+    const resetToken = randomstring.generate({
       length: 32,
       charset: 'alphanumeric'
     });
