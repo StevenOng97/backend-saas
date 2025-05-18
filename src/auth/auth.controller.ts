@@ -20,8 +20,14 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
+    return this.authService.login(loginDto, res);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@Res({ passthrough: true }) res: Response) {
+    return this.authService.logout(res);
   }
 
   @Post('forgotpassword')
@@ -51,12 +57,14 @@ export class AuthController {
 
   @Get('auth/google/callback')
   @UseGuards(AuthGuard('google'))
-  googleAuthCallback(@Req() req: Request, @Res() res: Response) {
-    // After successful Google authentication, redirect to frontend with token
-    const token = req.user;
+  async googleAuthCallback(@Req() req: Request, @Res() res: Response) {
+    const user = req.user;
     const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
     
-    // Redirect to frontend homepage with token
-    return res.redirect(`${frontendUrl}/?token=${JSON.stringify(token)}`);
+    // Set the authentication cookie
+    await this.authService.googleLogin(user, res);
+    
+    // Redirect to frontend homepage (without token in URL)
+    return res.redirect(frontendUrl);
   }
 } 

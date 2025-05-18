@@ -33,9 +33,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       lastName: name.familyName,
     };
     
-    // Process the user in the service
-    const result = await this.authService.googleLogin(user);
-    
-    done(null, result);
+    // Return the user object directly
+    done(null, user);
   }
 } 

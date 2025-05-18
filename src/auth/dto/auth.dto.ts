@@ -52,13 +52,15 @@ export class ResetPasswordDto {
   newPassword: string;
 }
 
+export class UserResponseDto {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
+
+// Kept for backward compatibility, but accessToken will be null in responses
 export class TokenResponseDto {
-  accessToken: string;
-  user: {
-    id: string;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-  }
+  user: UserResponseDto;
 }

@@ -6,6 +6,7 @@ import * as bcrypt from 'bcrypt';
 import * as randomstring from 'randomstring';
 import { SignUpDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, TokenResponseDto } from './dto/auth.dto';
 import { UserRole } from '@prisma/client';
+import { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -15,10 +16,22 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
+  
   // Helper function to create JWT token
   private createToken(userId: string): string {
     const payload = { sub: userId };
     return this.jwtService.sign(payload);
+  }
+
+  // Helper function to set auth cookie
+  private setAuthCookie(response: Response, token: string): void {
+    response.cookie('access_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      path: '/',
+    });
   }
 
   // Helper function to select safe user fields
@@ -41,7 +54,6 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({
       where: { email },
     });
-
     if (!user || !user.password) {
       return null;
     }
@@ -92,9 +104,9 @@ export class AuthService {
   }
 
   // Login user
-  async login(loginDto: LoginDto): Promise<TokenResponseDto> {
+  async login(loginDto: LoginDto, response: Response): Promise<{ user: any }> {
     const { email, password } = loginDto;
-
+    
     // Use the validateUser method to check credentials
     const user = await this.validateUser(email, password);
 
@@ -103,9 +115,11 @@ export class AuthService {
     }
 
     const accessToken = this.createToken(user.id);
+    
+    // Set the token as an HTTP-only cookie
+    this.setAuthCookie(response, accessToken);
 
     return {
-      accessToken,
       user: {
         id: user.id,
         email: user.email,
@@ -203,7 +217,7 @@ export class AuthService {
   }
 
   // Google OAuth login/signup
-  async googleLogin(googleUser: any): Promise<TokenResponseDto> {
+  async googleLogin(googleUser: any, response: Response): Promise<{ user: any }> {
     const { googleId, email, firstName, lastName } = googleUser;
 
     // Check if user already exists by Google ID
@@ -251,8 +265,10 @@ export class AuthService {
     // Generate JWT token
     const accessToken = this.createToken(user.id);
 
+    // Set the token as an HTTP-only cookie
+    this.setAuthCookie(response, accessToken);
+
     return {
-      accessToken,
       user: {
         id: safeUser?.id || '',
         email: safeUser?.email || '',
@@ -261,5 +277,18 @@ export class AuthService {
         role: safeUser?.role || '',
       },
     };
+  }
+  
+  // Logout user
+  async logout(response: Response): Promise<{ message: string }> {
+    // Clear the auth cookie
+    response.clearCookie('access_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+    });
+    
+    return { message: 'Logged out successfully' };
   }
 } 
