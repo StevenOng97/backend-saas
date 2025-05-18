@@ -65,6 +65,6 @@ export class AuthController {
     await this.authService.googleLogin(user, res);
     
     // Redirect to frontend homepage (without token in URL)
-    return res.redirect(frontendUrl);
+    return res.redirect(`${frontendUrl}/dashboard`);
   }
 } 
