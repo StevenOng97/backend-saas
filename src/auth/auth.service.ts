@@ -1,10 +1,22 @@
-import { Injectable, BadRequestException, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  UnauthorizedException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import * as bcrypt from 'bcrypt';
 import * as randomstring from 'randomstring';
-import { SignUpDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, TokenResponseDto } from './dto/auth.dto';
+import {
+  SignUpDto,
+  LoginDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  TokenResponseDto,
+} from './dto/auth.dto';
 import { UserRole } from '@prisma/client';
 import { Response } from 'express';
 
@@ -16,7 +28,6 @@ export class AuthService {
     private mailService: MailService,
   ) {}
 
-  
   // Helper function to create JWT token
   private createToken(userId: string): string {
     const payload = { sub: userId };
@@ -25,12 +36,13 @@ export class AuthService {
 
   // Helper function to set auth cookie
   private setAuthCookie(response: Response, token: string): void {
+    const isProd = process.env.NODE_ENV === 'production';
+
     response.cookie('access_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      secure: true, // Always true for cross-origin with sameSite: 'none'
+      sameSite: isProd ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
-      domain: '.onrender.com',
       path: '/',
     });
   }
@@ -105,9 +117,12 @@ export class AuthService {
   }
 
   // Login user
-  async login(loginDto: LoginDto, response: Response): Promise<{ token: string; user: any }> {
+  async login(
+    loginDto: LoginDto,
+    response: Response,
+  ): Promise<{ token: string; user: any }> {
     const { email, password } = loginDto;
-    
+
     // Use the validateUser method to check credentials
     const user = await this.validateUser(email, password);
 
@@ -116,7 +131,7 @@ export class AuthService {
     }
 
     const accessToken = this.createToken(user.id);
-    
+
     // Set the token as an HTTP-only cookie
     this.setAuthCookie(response, accessToken);
 
@@ -133,7 +148,9 @@ export class AuthService {
   }
 
   // Request password reset
-  async forgotPassword(forgotPasswordDto: ForgotPasswordDto): Promise<{ message: string }> {
+  async forgotPassword(
+    forgotPasswordDto: ForgotPasswordDto,
+  ): Promise<{ message: string }> {
     const { email } = forgotPasswordDto;
 
     const user = await this.prisma.user.findUnique({
@@ -147,7 +164,7 @@ export class AuthService {
     // Generate reset token
     const resetToken = randomstring.generate({
       length: 32,
-      charset: 'alphanumeric'
+      charset: 'alphanumeric',
     });
 
     // Calculate expiration (1 hour from now)
@@ -169,16 +186,15 @@ export class AuthService {
     });
 
     // Send password reset email
-    await this.mailService.sendPasswordResetEmail(
-      email,
-      resetToken,
-    );
+    await this.mailService.sendPasswordResetEmail(email, resetToken);
 
     return { message: 'Password reset instructions sent to your email' };
   }
 
   // Reset password with token
-  async resetPassword(resetPasswordDto: ResetPasswordDto): Promise<{ message: string }> {
+  async resetPassword(
+    resetPasswordDto: ResetPasswordDto,
+  ): Promise<{ message: string }> {
     const { token, newPassword } = resetPasswordDto;
 
     // Find the password reset record
@@ -215,11 +231,17 @@ export class AuthService {
       where: { id: passwordReset.id },
     });
 
-    return { message: 'Password reset successful. You can now log in with your new password.' };
+    return {
+      message:
+        'Password reset successful. You can now log in with your new password.',
+    };
   }
 
   // Google OAuth login/signup
-  async googleLogin(googleUser: any, response: Response): Promise<{ token: string; user: any }> {
+  async googleLogin(
+    googleUser: any,
+    response: Response,
+  ): Promise<{ token: string; user: any }> {
     const { googleId, email, firstName, lastName } = googleUser;
 
     // Check if user already exists by Google ID
@@ -263,7 +285,7 @@ export class AuthService {
 
     // Get safe user data
     const safeUser = await this.getUserSafeFields(user.id);
-    
+
     // Generate JWT token
     const accessToken = this.createToken(user.id);
 
@@ -281,7 +303,7 @@ export class AuthService {
       },
     };
   }
-  
+
   // Logout user
   async logout(response: Response): Promise<{ message: string }> {
     // Clear the auth cookie
@@ -291,7 +313,7 @@ export class AuthService {
       sameSite: 'strict',
       path: '/',
     });
-    
+
     return { message: 'Logged out successfully' };
   }
-} 
+}
