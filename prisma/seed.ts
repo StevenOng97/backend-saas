@@ -65,8 +65,7 @@ async function main() {
   const customer1 = await prisma.customer.create({
     data: {
       businessId: business.id,
-      firstName: 'John',
-      lastName: 'Doe',
+      name: 'John Doe',
       email: 'john.doe@example.com',
       phone: '+11234567890',
     },
@@ -75,8 +74,7 @@ async function main() {
   const customer2 = await prisma.customer.create({
     data: {
       businessId: business.id,
-      firstName: 'Jane',
-      lastName: 'Smith',
+      name: 'Jane Smith',
       email: 'jane.smith@example.com',
       phone: '+19876543210',
     },
