@@ -44,7 +44,6 @@ export class AuthService {
       sameSite: isProd ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
       path: '/',
-      partitioned: true, // Add CHIPS partitioned attribute for better Incognito support
     });
   }
 
@@ -315,7 +314,6 @@ export class AuthService {
       secure: true,
       sameSite: isProd ? 'none' : 'lax',
       path: '/',
-      partitioned: true,
     });
 
     return { message: 'Logged out successfully' };
