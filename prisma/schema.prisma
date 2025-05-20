@@ -51,15 +51,15 @@ model Organization {
 }
 
 model Business {
-  id                          String   @id @default(uuid())
-  name                        String
-  email                       String?
-  phone                       String?
-  googleBusinessReviewLink    String?  @map("google_business_review_link")
-  organizationId              String   @map("organization_id")
-  isMainLocation              Boolean  @default(false) @map("is_main_location")
-  createdAt                   DateTime @default(now()) @map("created_at")
-  updatedAt                   DateTime @default(now()) @map("updated_at")
+  id                       String   @id @default(uuid())
+  name                     String
+  email                    String?
+  phone                    String?
+  googleBusinessReviewLink String?  @map("google_business_review_link")
+  organizationId           String   @map("organization_id")
+  isMainLocation           Boolean  @default(false) @map("is_main_location")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @default(now()) @map("updated_at")
 
   organization Organization @relation(fields: [organizationId], references: [id])
   customers    Customer[]
@@ -103,14 +103,15 @@ model PasswordReset {
 }
 
 model Customer {
-  id         String   @id @default(uuid())
-  businessId String   @map("business_id")
-  firstName  String?  @map("first_name")
-  lastName   String?  @map("last_name")
-  email      String?
-  phone      String?
-  createdAt  DateTime @default(now()) @map("created_at")
-  updatedAt  DateTime @default(now()) @map("updated_at")
+  id          String   @id @default(uuid())
+  businessId  String   @map("business_id")
+  name        String?
+  email       String?
+  phone       String?
+  isReturning Boolean  @default(false) @map("is_returning")
+  notes       Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @map("updated_at")
 
   business Business @relation(fields: [businessId], references: [id])
   invites  Invite[]
@@ -131,9 +132,9 @@ model Invite {
   expiresAt      DateTime     @map("expires_at")
   metadata       Json         @default("{}")
 
-  business     Business    @relation(fields: [businessId], references: [id])
+  business     Business     @relation(fields: [businessId], references: [id])
   organization Organization @relation(fields: [organizationId], references: [id])
-  customer     Customer?   @relation(fields: [customerId], references: [id])
+  customer     Customer?    @relation(fields: [customerId], references: [id])
   smsLogs      SmsLog[]
 
   @@map("invites")
