@@ -40,10 +40,11 @@ export class AuthService {
 
     response.cookie('access_token', token, {
       httpOnly: true,
-      secure: true, // Always true for cross-origin with sameSite: 'none'
+      secure: true, // Always true for better security
       sameSite: isProd ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
       path: '/',
+      partitioned: true, // Add CHIPS partitioned attribute for better Incognito support
     });
   }
 
@@ -306,12 +307,15 @@ export class AuthService {
 
   // Logout user
   async logout(response: Response): Promise<{ message: string }> {
-    // Clear the auth cookie
+    // Clear the auth cookie with matching settings
+    const isProd = process.env.NODE_ENV === 'production';
+    
     response.clearCookie('access_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
+      partitioned: true,
     });
 
     return { message: 'Logged out successfully' };
