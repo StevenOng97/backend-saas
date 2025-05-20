@@ -8,7 +8,7 @@ async function bootstrap() {
   
   // Enable CORS with credentials
   app.enableCors({
-    origin: [process.env.FRONTEND_URL, 'http://localhost:3000', 'https://0764-2402-800-62a7-9663-b5e9-aa8c-8678-e5df.ngrok-free.app'],
+    origin: [process.env.FRONTEND_URL, 'http://localhost:3000', 'https://0676-2402-800-62a7-9663-b5e9-aa8c-8678-e5df.ngrok-free.app'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
