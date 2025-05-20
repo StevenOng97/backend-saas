@@ -104,7 +104,7 @@ export class AuthService {
   }
 
   // Login user
-  async login(loginDto: LoginDto, response: Response): Promise<{ user: any }> {
+  async login(loginDto: LoginDto, response: Response): Promise<{ token: string; user: any }> {
     const { email, password } = loginDto;
     
     // Use the validateUser method to check credentials
@@ -120,6 +120,7 @@ export class AuthService {
     this.setAuthCookie(response, accessToken);
 
     return {
+      token: accessToken,
       user: {
         id: user.id,
         email: user.email,
@@ -217,7 +218,7 @@ export class AuthService {
   }
 
   // Google OAuth login/signup
-  async googleLogin(googleUser: any, response: Response): Promise<{ user: any }> {
+  async googleLogin(googleUser: any, response: Response): Promise<{ token: string; user: any }> {
     const { googleId, email, firstName, lastName } = googleUser;
 
     // Check if user already exists by Google ID
@@ -269,6 +270,7 @@ export class AuthService {
     this.setAuthCookie(response, accessToken);
 
     return {
+      token: accessToken,
       user: {
         id: safeUser?.id || '',
         email: safeUser?.email || '',
