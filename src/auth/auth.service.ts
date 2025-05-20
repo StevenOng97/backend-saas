@@ -28,8 +28,9 @@ export class AuthService {
     response.cookie('access_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'none',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
+      domain: '.onrender.com',
       path: '/',
     });
   }
