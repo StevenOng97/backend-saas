@@ -36,13 +36,12 @@ export class AuthService {
 
   // Helper function to set auth cookie
   private setAuthCookie(response: Response, token: string): void {
-    const isProd = process.env.NODE_ENV === 'production';
-
     response.cookie('access_token', token, {
       httpOnly: true,
-      secure: true, // Always true for better security
-      sameSite: isProd ? 'none' : 'lax',
-      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      secure: true,
+      sameSite: 'lax',
+      domain: '.reviewroket.com',  // The leading dot allows sharing across subdomains
+      maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
   }
@@ -305,14 +304,12 @@ export class AuthService {
   }
 
   // Logout user
-  async logout(response: Response): Promise<{ message: string }> {
-    // Clear the auth cookie with matching settings
-    const isProd = process.env.NODE_ENV === 'production';
-    
+  async logout(response: Response): Promise<{ message: string }> {    
     response.clearCookie('access_token', {
       httpOnly: true,
       secure: true,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: 'lax',
+      domain: '.reviewroket.com',
       path: '/',
     });
 

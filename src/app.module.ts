@@ -11,6 +11,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
 import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { BusinessModule } from './business/business.module';
+import { CustomersModule } from './customers/customers.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { BusinessModule } from './business/business.module';
     AuthModule,
     MailModule,
     BusinessModule,
+    CustomersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
