@@ -30,6 +30,20 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         lastName: true,
         role: true,
         organizationId: true,
+        organization: {
+          select: {
+            businesses: {
+              select: {
+                name: true,
+                id: true,
+                isMainLocation: true,
+                googleBusinessReviewLink: true,
+                email: true,
+                phone: true
+              }
+            }
+          }
+        }
       },
     });
 

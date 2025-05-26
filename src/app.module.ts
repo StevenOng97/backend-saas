@@ -12,6 +12,12 @@ import { AuthModule } from './auth/auth.module';
 import { MailModule } from './mail/mail.module';
 import { BusinessModule } from './business/business.module';
 import { CustomersModule } from './customers/customers.module';
+import { SmsModule } from './sms/sms.module';
+import { UrlShortenerModule } from './url-shortener/url-shortener.module';
+import { FeedbacksModule } from './feedbacks/feedbacks.module';
+import { TwilioModule } from './twilio/twilio.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { WorkersModule } from './workers/workers.module';
 
 @Module({
   imports: [
@@ -54,6 +60,12 @@ import { CustomersModule } from './customers/customers.module';
     MailModule,
     BusinessModule,
     CustomersModule,
+    SmsModule,
+    UrlShortenerModule,
+    FeedbacksModule,
+    TwilioModule,
+    SubscriptionsModule,
+    WorkersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -61,6 +61,13 @@ model Business {
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @default(now()) @map("updated_at")
 
+  senderType    String  @default("shared") @map("sender_type")
+  senderPhone   String? @map("sender_phone")
+  a2pBrandId    String? @map("a2p_brand_id")
+  a2pCampaignId String? @map("a2p_campaign_id")
+  smsTemplate   String? @map("sms_template")
+  emailTemplate String? @map("email_template")
+
   organization Organization @relation(fields: [organizationId], references: [id])
   customers    Customer[]
   invites      Invite[]
@@ -116,6 +123,7 @@ model Customer {
   business Business @relation(fields: [businessId], references: [id])
   invites  Invite[]
   smsLogs  SmsLog[]
+  optedOut Boolean  @default(false) @map("opted_out")
 
   @@unique([businessId, email])
   @@map("customers")
@@ -137,7 +145,25 @@ model Invite {
   customer     Customer?    @relation(fields: [customerId], references: [id])
   smsLogs      SmsLog[]
 
+  openedAt    DateTime? @map("opened_at")
+  ratingValue Int?      @map("rating_value")
+  deviceInfo  String?   @map("device_info")
+  ipAddress   String?   @map("ip_address")
+  feedback    Feedback?
+
   @@map("invites")
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  inviteId  String   @unique @map("invite_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  invite Invite @relation(fields: [inviteId], references: [id])
+
+  @@map("feedback")
 }
 
 model Subscription {
@@ -174,4 +200,16 @@ model SmsLog {
   invite   Invite?  @relation(fields: [inviteId], references: [id])
 
   @@map("sms_logs")
+}
+
+model UrlMapping {
+  id          String   @id @default(uuid())
+  originalUrl String   @map("original_url")
+  shortUrl    String   @map("short_url")
+  urlId       String   @unique @map("url_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  clicks      Int      @default(0)
+
+  @@index([urlId])
+  @@map("url_mappings")
 }
