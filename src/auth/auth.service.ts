@@ -39,7 +39,7 @@ export class AuthService {
     response.cookie('access_token', token, {
       httpOnly: true,
       secure: true,
-      sameSite: 'lax',
+      sameSite: 'none',
       domain: '.reviewroket.com',  // The leading dot allows sharing across subdomains
       maxAge: 24 * 60 * 60 * 1000,
       path: '/',
@@ -308,7 +308,7 @@ export class AuthService {
     response.clearCookie('access_token', {
       httpOnly: true,
       secure: true,
-      sameSite: 'lax',
+      sameSite: 'none',
       domain: '.reviewroket.com',
       path: '/',
     });
