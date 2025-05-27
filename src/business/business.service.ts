@@ -83,9 +83,14 @@ export class BusinessService {
     }
 
     try {
-      return await this.prisma.business.delete({
+      await this.prisma.business.delete({
         where: { id },
       });
+
+      return {
+        isSuccess: true,
+        message: `Business with ID ${id} deleted successfully`,
+      };
     } catch (error) {
       if (error.code === 'P2025') {
         throw new NotFoundException(`Business with ID ${id} not found`);

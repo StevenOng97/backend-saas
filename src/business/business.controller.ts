@@ -54,7 +54,7 @@ export class BusinessController {
 
   @Delete(':id')
   @UseGuards(BusinessOwnerGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   async remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
     await this.businessService.remove(id, user);
   }

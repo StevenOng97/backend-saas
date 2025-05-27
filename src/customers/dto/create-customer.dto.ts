@@ -1,10 +1,8 @@
 import {
   IsEmail,
-  IsNotEmpty,
   IsOptional,
   IsString,
   IsBoolean,
-  IsJSON,
 } from 'class-validator';
 
 export class CreateCustomerDto {

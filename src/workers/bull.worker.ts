@@ -6,15 +6,13 @@ import { config as dotenvConfig } from 'dotenv';
 import { getUpstashConnectionOptions } from '../config/upstash.config';
 import prisma from '../../lib/prisma';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UrlShortenerService } from '../url-shortener/url-shortener.service';
 
 // Load environment variables
 dotenvConfig();
 
 // Initialize required services
 const configService = new ConfigService();
-const urlShortenerService = new UrlShortenerService(prisma as PrismaService, configService);
-const smsService = new SmsService(prisma as PrismaService, configService, urlShortenerService);
+const smsService = new SmsService(prisma as PrismaService, configService);
 const logger = new Logger('BullWorker');
 
 // Determine which Redis connection to use

@@ -16,13 +16,13 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
-import { CreateCustomerDto, UpdateCustomerDto, CsvUploadDto } from './dto';
-import { JwtAuthGuard, BusinessOwnerGuard } from '../auth/guards';
+import { CreateCustomerDto, UpdateCustomerDto } from './dto';
+import { JwtAuthGuard } from '../auth/guards';
 import { User } from '@prisma/client';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from 'src/decorators';
 
-@Controller('businesses/:businessId/customers')
+@Controller('customers')
 @UseGuards(JwtAuthGuard)
 export class CustomersController {
   constructor(private readonly customersService: CustomersService) {}
@@ -30,55 +30,44 @@ export class CustomersController {
   @Post()
   @UsePipes(new ValidationPipe({ whitelist: true }))
   create(
-    @Param('businessId', ParseUUIDPipe) businessId: string,
     @Body() createCustomerDto: CreateCustomerDto,
+    @CurrentUser() user: User,
   ) {
-    return this.customersService.create(createCustomerDto, businessId);
+    return this.customersService.create(createCustomerDto, user);
   }
 
   @Get()
-  @UseGuards(BusinessOwnerGuard)
-  findAll(@Param('businessId', ParseUUIDPipe) businessId: string) {
-    return this.customersService.findAll(businessId);
+  findAll(@CurrentUser() user: User) {
+    return this.customersService.findAll(user);
   }
 
   @Get(':id')
-  @UseGuards(BusinessOwnerGuard)
-  findOne(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('businessId', ParseUUIDPipe) businessId: string,
-  ) {
-    return this.customersService.findOne(id, businessId);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.customersService.findOne(id, user);
   }
 
   @Patch(':id')
-  @UseGuards(BusinessOwnerGuard)
   @UsePipes(new ValidationPipe({ whitelist: true }))
   update(
     @Param('id', ParseUUIDPipe) id: string,
-    @Param('businessId', ParseUUIDPipe) businessId: string,
     @Body() updateCustomerDto: UpdateCustomerDto,
+    @CurrentUser() user: User,
   ) {
-    return this.customersService.update(id, updateCustomerDto, businessId);
+    return this.customersService.update(id, updateCustomerDto, user);
   }
 
   @Delete(':id')
-  @UseGuards(BusinessOwnerGuard)
-  @HttpCode(HttpStatus.NO_CONTENT)
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('businessId', ParseUUIDPipe) businessId: string,
-  ) {
-    return this.customersService.remove(id, businessId);
+  @HttpCode(HttpStatus.OK)
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: User) {
+    return this.customersService.remove(id, user);
   }
 
-  @Post('upload-csv')
-  @UseGuards(BusinessOwnerGuard)
+  @Post('uploads')
   @UseInterceptors(FileInterceptor('file'))
   uploadCsv(
-    @UploadedFile() file: Express.Multer["File"],
-    @Param('businessId', ParseUUIDPipe) businessId: string,
+    @UploadedFile() file: Express.Multer['File'],
+    @CurrentUser() user: User,
   ) {
-    return this.customersService.uploadCsv(file, businessId);
+    return this.customersService.uploadCsv(file, user);
   }
 }

@@ -3,7 +3,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'crypto';
 import { SmsStatus } from '@prisma/client';
-import { UrlShortenerService } from '../url-shortener/url-shortener.service';
 
 @Injectable()
 export class SmsService {
@@ -16,7 +15,6 @@ export class SmsService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
-    private urlShortenerService: UrlShortenerService,
   ) {
     this.sharedTwilioNumber = this.configService.get<string>('SHARED_TWILIO_NUMBER') || '';
     this.sharedServiceSid = this.configService.get<string>('SHARED_SERVICE_SID') || '';
@@ -71,9 +69,13 @@ export class SmsService {
       }
 
       // Generate a short URL for the review link
-      const shortUrlMapping = await this.urlShortenerService.createShortUrl(
-        `${this.configService.get<string>('BACKEND_URL')}/rate/${inviteId}`
-      );
+      // const shortUrlMapping = await this.urlShortenerService.createShortUrl(
+      //   `${this.configService.get<string>('BACKEND_URL')}/rate/${inviteId}`
+      // );
+
+      const shortUrlMapping = {
+        shortUrl: `${this.configService.get<string>('BACKEND_URL')}/rate/${inviteId}`
+      };
 
       let fromNumber: string;
       let messagingServiceSid: string;
