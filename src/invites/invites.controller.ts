@@ -15,7 +15,7 @@ export class InvitesController {
   async create(@Body() createInviteDto: CreateInviteDto, @Request() req, @Res() res: Response) {
     // Get the business ID from the authenticated user
     console.log("User:", req.user)
-    const businessId = req.user?.organization?.business[0]?.id ?? "";
+    const businessId = req.user?.organization?.businesses[0]?.id ?? "";
     
     if (!businessId) {
       return res.status(HttpStatus.BAD_REQUEST).json({
