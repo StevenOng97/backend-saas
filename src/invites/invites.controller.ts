@@ -11,7 +11,7 @@ export class InvitesController {
   constructor(private readonly invitesService: InvitesService) {}
 
   @Post()
-  @UseGuards(InviteLimitGuard) // Check invite limits after authentication
+  // @UseGuards(InviteLimitGuard) // Check invite limits after authentication
   async create(@Body() createInviteDto: CreateInviteDto, @Request() req, @Res() res: Response) {
     // Get the business ID from the authenticated user
     const businessId = req.user?.businessId;
