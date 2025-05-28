@@ -10,6 +10,7 @@ export class InviteLimitMiddleware implements NestMiddleware {
     // Get user from authenticated user that Passport added to the request
     const user = req.user as any;
     
+    console.log("User:", req.user)
     if (!user || !user.organizationId) {
       throw new HttpException('User not associated with an organization', HttpStatus.BAD_REQUEST);
     }
