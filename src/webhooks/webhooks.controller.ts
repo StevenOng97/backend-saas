@@ -1,5 +1,7 @@
-import { Controller, Post, Body, HttpStatus, Logger } from '@nestjs/common';
+import { Controller, Post, Body, HttpStatus, Logger, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { TwilioWebhookDto } from './dto/twilio-webhook.dto';
+import { TwilioIncomingSmsDto } from './dto/twilio-incoming-sms.dto';
 import { SmsService } from '../sms/sms.service';
 import { SmsStatus } from '@prisma/client';
 
@@ -37,35 +39,85 @@ export class WebhooksController {
     };
   }
 
-  @Post('twilio/opt-out')
-  async handleOptOut(@Body() body: { From: string; Body: string }) {
-    this.logger.log(`Received opt-out request from ${body.From}: ${body.Body}`);
+  @Post('twilio/incoming')
+  async handleIncomingSms(@Body() incomingData: TwilioIncomingSmsDto, @Res() res: Response) {
+    const { From, Body: messageBody, MessageSid } = incomingData;
     
-    // Check if this is an opt-out message (containing STOP, CANCEL, etc.)
-    const optOutKeywords = ['STOP', 'CANCEL', 'UNSUBSCRIBE', 'END', 'QUIT'];
+    this.logger.log(`Received SMS from ${From}: "${messageBody}" (SID: ${MessageSid})`);
     
-    const messageBody = body.Body?.trim().toUpperCase() || '';
-    if (!optOutKeywords.some(keyword => messageBody.includes(keyword))) {
-      this.logger.log(`Message "${messageBody}" is not an opt-out request`);
-      return {
-        status: HttpStatus.OK,
-        message: 'Not an opt-out message',
-      };
+    const normalizedBody = messageBody?.trim().toUpperCase() || '';
+    
+    // Handle STOP keyword for opt-out
+    if (normalizedBody === 'STOP') {
+      this.logger.log(`Processing STOP request from ${From}`);
+      
+      const success = await this.smsService.markCustomerAsOptedOut(From);
+      
+      if (success) {
+        this.logger.log(`Successfully opted out customer with phone ${From}`);
+        // Respond with confirmation message (Twilio will send this as SMS)
+        return res.type('text/xml').send(`
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Response>
+            <Message>You have been unsubscribed from our SMS messages. Reply START to opt back in.</Message>
+          </Response>
+        `);
+      } else {
+        this.logger.warn(`Could not find customer with phone ${From} to opt out`);
+        // Still respond with confirmation for privacy
+        return res.type('text/xml').send(`
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Response>
+            <Message>You have been unsubscribed from our SMS messages.</Message>
+          </Response>
+        `);
+      }
     }
     
-    // Mark the customer as opted out
-    const success = await this.smsService.markCustomerAsOptedOut(body.From);
-    
-    if (!success) {
-      return {
-        status: HttpStatus.NOT_FOUND,
-        message: `No customer found with phone number ${body.From}`,
-      };
+    // Handle HELP keyword
+    if (normalizedBody === 'HELP') {
+      this.logger.log(`Processing HELP request from ${From}`);
+      
+      return res.type('text/xml').send(`
+        <?xml version="1.0" encoding="UTF-8"?>
+        <Response>
+          <Message>Reply STOP to unsubscribe from SMS messages. For support, contact us at support@yourcompany.com</Message>
+        </Response>
+      `);
     }
     
-    return {
-      status: HttpStatus.OK,
-      message: `Successfully opted out customer with phone number ${body.From}`,
-    };
+    // Handle START keyword (opt back in)
+    if (normalizedBody === 'START') {
+      this.logger.log(`Processing START request from ${From}`);
+      
+      const success = await this.smsService.markCustomerAsOptedIn(From);
+      
+      if (success) {
+        this.logger.log(`Successfully opted in customer with phone ${From}`);
+        return res.type('text/xml').send(`
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Response>
+            <Message>You have been subscribed to our SMS messages. Reply STOP to unsubscribe.</Message>
+          </Response>
+        `);
+      } else {
+        this.logger.warn(`Could not find customer with phone ${From} to opt in`);
+        return res.type('text/xml').send(`
+          <?xml version="1.0" encoding="UTF-8"?>
+          <Response>
+            <Message>You have been subscribed to our SMS messages.</Message>
+          </Response>
+        `);
+      }
+    }
+    
+    // For any other message, just acknowledge receipt
+    this.logger.log(`Received unhandled message from ${From}: "${messageBody}"`);
+    
+    // Return empty response (no auto-reply for other messages)
+    return res.type('text/xml').send(`
+      <?xml version="1.0" encoding="UTF-8"?>
+      <Response></Response>
+    `);
   }
 } 

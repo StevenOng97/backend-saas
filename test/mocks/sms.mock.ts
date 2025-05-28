@@ -5,5 +5,11 @@ export const mockSmsService = {
     sid: 'mock-twilio-sid',
     success: true,
   })),
+  sendReviewInvite: jest.fn().mockImplementation(() => ({
+    sid: 'mock-twilio-sid',
+    success: true,
+  })),
   updateSmsStatus: jest.fn().mockImplementation(() => true),
+  markCustomerAsOptedOut: jest.fn().mockImplementation(() => true),
+  markCustomerAsOptedIn: jest.fn().mockImplementation(() => true),
 }; 

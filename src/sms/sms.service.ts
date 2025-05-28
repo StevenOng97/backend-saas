@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import * as crypto from 'crypto';
+import { TwilioClientService } from '../twilio/twilio-client.service';
 import { SmsStatus } from '@prisma/client';
 
 @Injectable()
@@ -15,6 +15,7 @@ export class SmsService {
   constructor(
     private prisma: PrismaService,
     private configService: ConfigService,
+    private twilioClient: TwilioClientService,
   ) {
     this.sharedTwilioNumber = this.configService.get<string>('SHARED_TWILIO_NUMBER') || '';
     this.sharedServiceSid = this.configService.get<string>('SHARED_SERVICE_SID') || '';
@@ -49,7 +50,7 @@ export class SmsService {
       // Check if customer opted out
       if (customer.optedOut) {
         // Create a failed SMS log for tracking
-        const sid = `SM${crypto.randomBytes(15).toString('hex')}`;
+        const sid = `SM_OPTED_OUT_${Date.now()}`;
         await this.prisma.smsLog.create({
           data: {
             businessId,
@@ -65,6 +66,15 @@ export class SmsService {
           sid, 
           success: false,
           message: 'Customer opted out'
+        };
+      }
+
+      // Validate customer phone number
+      if (!customer.phone) {
+        return {
+          sid: '',
+          success: false,
+          message: 'Customer phone number not found'
         };
       }
 
@@ -106,10 +116,11 @@ export class SmsService {
         }
       }
 
-      // Simulate sending SMS via Twilio
+      // Send SMS via Twilio
       const result = await this.sendSms(
         businessId,
         customerId,
+        customer.phone,
         smsBody,
         inviteId,
         fromNumber,
@@ -128,24 +139,121 @@ export class SmsService {
   }
 
   /**
-   * Simulate sending an SMS via Twilio
+   * Send an SMS via Twilio
    */
   async sendSms(
     businessId: string,
     customerId: string,
+    phoneNumber: string,
     message: string,
     inviteId?: string,
     fromNumber?: string,
     messagingServiceSid?: string,
+  ): Promise<{ sid: string; success: boolean; message?: string }> {
+    try {
+      // Check if Twilio is configured
+      if (!this.twilioClient.isConfigured()) {
+        this.logger.warn('Twilio not configured, falling back to simulation mode');
+        return this.simulateSms(businessId, customerId, message, inviteId);
+      }
+
+      // Ensure phone number is in E.164 format
+      let formattedPhone = phoneNumber;
+      if (!formattedPhone.startsWith('+')) {
+        // Assume US number if no country code
+        formattedPhone = `+1${formattedPhone.replace(/\D/g, '')}`;
+      }
+
+      this.logger.log(
+        `Sending SMS to ${formattedPhone} from ${fromNumber || messagingServiceSid || 'default'}`
+      );
+
+      // Send via Twilio
+      const result = await this.twilioClient.sendSms({
+        to: formattedPhone,
+        body: message,
+        from: fromNumber,
+        messagingServiceSid: messagingServiceSid,
+      });
+
+      if (result.success) {
+        // Create a record in the sms_logs table
+        await this.prisma.smsLog.create({
+          data: {
+            businessId,
+            customerId,
+            inviteId,
+            twilioSid: result.sid,
+            status: SmsStatus.QUEUED,
+            message,
+          },
+        });
+
+        this.logger.log(`SMS sent successfully with SID: ${result.sid}`);
+        return { 
+          sid: result.sid, 
+          success: true 
+        };
+      } else {
+        // Log failed attempt
+        await this.prisma.smsLog.create({
+          data: {
+            businessId,
+            customerId,
+            inviteId,
+            twilioSid: result.sid || `FAILED_${Date.now()}`,
+            status: SmsStatus.FAILED,
+            message: result.error || 'Unknown error',
+          },
+        });
+
+        this.logger.error(`Failed to send SMS: ${result.error}`);
+        return { 
+          sid: result.sid || '', 
+          success: false,
+          message: result.error 
+        };
+      }
+    } catch (error) {
+      this.logger.error(`Error sending SMS: ${error.message}`);
+      
+      // Log failed attempt
+      await this.prisma.smsLog.create({
+        data: {
+          businessId,
+          customerId,
+          inviteId,
+          twilioSid: `ERROR_${Date.now()}`,
+          status: SmsStatus.FAILED,
+          message: error.message,
+        },
+      });
+
+      return { 
+        sid: '', 
+        success: false,
+        message: error.message 
+      };
+    }
+  }
+
+  /**
+   * Fallback simulation method for when Twilio is not configured
+   */
+  private async simulateSms(
+    businessId: string,
+    customerId: string,
+    message: string,
+    inviteId?: string,
   ): Promise<{ sid: string; success: boolean }> {
     // Simulate success/failure (70% success rate)
     const isSuccess = Math.random() < 0.7;
     
     // Generate a fake Twilio SID
-    const sid = `SM${crypto.randomBytes(15).toString('hex')}`;
+    const sid = `SM_SIM_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     
     this.logger.log(
-      `Attempting to send SMS to customer ${customerId} from ${fromNumber || 'shared number'}: ${isSuccess ? 'SUCCESS' : 'FAILURE'}`,
+      `SIMULATION: Attempting to send SMS to customer ${customerId}: ${isSuccess ? 'SUCCESS' : 'FAILURE'}`,
     );
 
     if (isSuccess) {
@@ -161,11 +269,11 @@ export class SmsService {
         },
       });
 
-      this.logger.log(`SMS queued with SID: ${sid}`);
+      this.logger.log(`SIMULATION: SMS queued with SID: ${sid}`);
       return { sid, success: true };
     }
 
-    this.logger.error(`Failed to send SMS to customer ${customerId}`);
+    this.logger.error(`SIMULATION: Failed to send SMS to customer ${customerId}`);
     return { sid, success: false };
   }
 
@@ -220,6 +328,34 @@ export class SmsService {
       return true;
     } catch (error) {
       this.logger.error(`Error marking customer as opted out: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Mark a customer as opted in (reverse of opt-out)
+   */
+  async markCustomerAsOptedIn(phoneNumber: string): Promise<boolean> {
+    try {
+      const customers = await this.prisma.customer.findMany({
+        where: { phone: phoneNumber },
+      });
+
+      if (!customers || customers.length === 0) {
+        this.logger.warn(`No customers found with phone ${phoneNumber}`);
+        return false;
+      }
+
+      // Update all customers with this phone number
+      await this.prisma.customer.updateMany({
+        where: { phone: phoneNumber },
+        data: { optedOut: false },
+      });
+
+      this.logger.log(`Marked ${customers.length} customer(s) with phone ${phoneNumber} as opted in`);
+      return true;
+    } catch (error) {
+      this.logger.error(`Error marking customer as opted in: ${error.message}`);
       return false;
     }
   }

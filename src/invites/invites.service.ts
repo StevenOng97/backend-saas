@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { CreateInviteDto } from './dto/create-invite.dto';
 import { InviteStatus } from '@prisma/client';
+import { SmsJobData } from '../types/sms-job.interface';
 
 @Injectable()
 export class InvitesService {
@@ -63,15 +64,18 @@ export class InvitesService {
     //   this.logger.log(`Invite email sent to ${email}`);
     // }
 
+    // Prepare SMS job data with proper typing
+    const smsJobData: SmsJobData = {
+      businessId,
+      customerId,
+      inviteId: invite.id,
+      message,
+    };
+
     // Enqueue SMS job
     const job = await this.smsQueue.add(
       'send',
-      {
-        businessId,
-        customerId,
-        inviteId: invite.id,
-        message,
-      },
+      smsJobData,
       {
         attempts: 3,
         backoff: {

@@ -6,13 +6,14 @@ import { config as dotenvConfig } from 'dotenv';
 import { getUpstashConnectionOptions } from '../config/upstash.config';
 import prisma from '../../lib/prisma';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { TwilioClientService } from 'src/twilio/twilio-client.service';
 
 // Load environment variables
 dotenvConfig();
 
 // Initialize required services
 const configService = new ConfigService();
-const smsService = new SmsService(prisma as PrismaService, configService);
+const smsService = new SmsService(prisma as PrismaService, configService, new TwilioClientService(configService));
 const logger = new Logger('BullWorker');
 
 // Determine which Redis connection to use
@@ -39,17 +40,16 @@ const smsWorker = new Worker(
     
     logger.log(`Processing SMS job ${job.id} for invite ${inviteId}`);
     
-    // Simulate sending the SMS
-    const result = await smsService.sendSms(
+    // Use sendReviewInvite for proper invite handling instead of generic sendSms
+    const result = await smsService.sendReviewInvite(
+      inviteId,
       businessId,
       customerId,
-      message,
-      inviteId,
     );
     
     if (!result.success) {
-      logger.error(`Failed to send SMS for job ${job.id}, will retry if attempts remain`);
-      throw new Error('SMS sending failed');
+      logger.error(`Failed to send SMS for job ${job.id}: ${result.message || 'Unknown error'}, will retry if attempts remain`);
+      throw new Error(result.message || 'SMS sending failed');
     }
     
     logger.log(`SMS job ${job.id} completed successfully with SID: ${result.sid}`);

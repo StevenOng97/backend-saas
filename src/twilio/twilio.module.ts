@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TwilioIsvService } from './twilio-isv.service';
 import { TwilioQueueService } from './twilio-queue.service';
+import { TwilioClientService } from './twilio-client.service';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 
@@ -11,7 +12,7 @@ import { BullModule } from '@nestjs/bull';
       name: 'twilioRegistration',
     }),
   ],
-  providers: [TwilioIsvService, TwilioQueueService],
-  exports: [TwilioIsvService, TwilioQueueService],
+  providers: [TwilioIsvService, TwilioQueueService, TwilioClientService],
+  exports: [TwilioIsvService, TwilioQueueService, TwilioClientService],
 })
 export class TwilioModule {} 
