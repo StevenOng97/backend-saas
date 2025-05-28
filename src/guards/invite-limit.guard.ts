@@ -1,39 +1,42 @@
-import { Injectable, NestMiddleware, HttpException, HttpStatus } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
+import { Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
-export class InviteLimitMiddleware implements NestMiddleware {
+export class InviteLimitGuard implements CanActivate {
   constructor(private prisma: PrismaService) {}
 
-  async use(req: Request, res: Response, next: NextFunction) {
-    // Get user from authenticated user that Passport added to the request
-    const user = req.user as any;
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user as any;
     
-    console.log("User:", req.user)
+    console.log("User:", request.user)
     if (!user || !user.organizationId) {
       throw new HttpException('User not associated with an organization', HttpStatus.BAD_REQUEST);
     }
     
-    // Get the business ID from request parameters or body
-    const businessId = req.params.businessId || req.body.businessId;
+    // Get the customer ID from request parameters or body
+    const customerId = request.params.customerId || request.body.customerId;
     
-    if (!businessId) {
-      throw new HttpException('Business ID is required', HttpStatus.BAD_REQUEST);
+    if (!customerId) {
+      throw new HttpException('Customer ID is required', HttpStatus.BAD_REQUEST);
     }
     
-    // Verify that the business belongs to the user's organization
-    const business = await this.prisma.business.findUnique({
-      where: { id: businessId },
-      select: { organizationId: true }
+    // Verify that the customer belongs to the user's organization
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      include: { 
+        business: {
+          select: { organizationId: true }
+        }
+      }
     });
     
-    if (!business) {
-      throw new HttpException('Business not found', HttpStatus.NOT_FOUND);
+    if (!customer) {
+      throw new HttpException('Customer not found', HttpStatus.NOT_FOUND);
     }
     
-    if (business.organizationId !== user.organizationId) {
-      throw new HttpException('Unauthorized to access this business', HttpStatus.FORBIDDEN);
+    if (customer.business.organizationId !== user.organizationId) {
+      throw new HttpException('Unauthorized to access this customer', HttpStatus.FORBIDDEN);
     }
     
     // Fetch the organization's subscription
@@ -66,6 +69,6 @@ export class InviteLimitMiddleware implements NestMiddleware {
     }
 
     // If we get here, the limit is not reached
-    next();
+    return true;
   }
 } 
