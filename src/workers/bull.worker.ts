@@ -1,19 +1,15 @@
 import { Worker, Job } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
-import { SmsService } from '../sms/sms.service';
 import { Logger } from '@nestjs/common';
 import { config as dotenvConfig } from 'dotenv';
 import { getUpstashConnectionOptions } from '../config/upstash.config';
 import prisma from '../../lib/prisma';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { TwilioClientService } from 'src/twilio/twilio-client.service';
 
 // Load environment variables
 dotenvConfig();
 
 // Initialize required services
 const configService = new ConfigService();
-const smsService = new SmsService(prisma as PrismaService, configService, new TwilioClientService(configService));
 const logger = new Logger('BullWorker');
 
 // Determine which Redis connection to use
@@ -31,32 +27,6 @@ if (process.env.UPSTASH_REDIS_URL && process.env.UPSTASH_REDIS_TOKEN) {
     port: parseInt(process.env.REDIS_PORT || '6379'),
   };
 }
-
-// Create the SMS worker
-const smsWorker = new Worker(
-  'sms',
-  async (job: Job) => {
-    const { businessId, customerId, inviteId, message } = job.data;
-    
-    logger.log(`Processing SMS job ${job.id} for invite ${inviteId}`);
-    
-    // Use sendReviewInvite for proper invite handling instead of generic sendSms
-    const result = await smsService.sendReviewInvite(
-      inviteId,
-      businessId,
-      customerId,
-    );
-    
-    if (!result.success) {
-      logger.error(`Failed to send SMS for job ${job.id}: ${result.message || 'Unknown error'}, will retry if attempts remain`);
-      throw new Error(result.message || 'SMS sending failed');
-    }
-    
-    logger.log(`SMS job ${job.id} completed successfully with SID: ${result.sid}`);
-    return { sid: result.sid };
-  },
-  { connection },
-);
 
 // Create the Twilio Registration worker
 const twilioRegistrationWorker = new Worker(
@@ -134,42 +104,35 @@ const twilioRegistrationWorker = new Worker(
   },
 );
 
-// Set up event handlers for both workers
-for (const worker of [smsWorker, twilioRegistrationWorker]) {
-  worker.on('completed', (job: Job) => {
-    logger.log(`Job ${job.id} in queue ${job.queueName} has been completed successfully`);
-  });
+// Set up event handlers
+twilioRegistrationWorker.on('completed', (job: Job) => {
+  logger.log(`Job ${job.id} in queue ${job.queueName} has been completed successfully`);
+});
 
-  worker.on('failed', (job: Job, error: Error) => {
-    logger.error(`Job ${job.id} in queue ${job.queueName} has failed with error: ${error.message}`);
-    
-    if (job.attemptsMade >= 10) {
-      logger.error(`Job ${job.id} has failed permanently after ${job.attemptsMade} attempts`);
-    }
-  });
+twilioRegistrationWorker.on('failed', (job: Job, error: Error) => {
+  logger.error(`Job ${job.id} in queue ${job.queueName} has failed with error: ${error.message}`);
   
-  worker.on('error', (error) => {
-    logger.error(`Worker error: ${error.message}`);
-  });
-}
+  if (job.attemptsMade >= 10) {
+    logger.error(`Job ${job.id} has failed permanently after ${job.attemptsMade} attempts`);
+  }
+});
 
-logger.log('Workers started and listening for jobs');
+twilioRegistrationWorker.on('error', (error) => {
+  logger.error(`Worker error: ${error.message}`);
+});
+
+logger.log('Twilio Registration Worker started and listening for jobs');
+logger.log('Note: SMS jobs are now handled by the NestJS SMS processor');
 
 // Handle termination gracefully
 process.on('SIGINT', async () => {
-  await Promise.all([
-    smsWorker.close(),
-    twilioRegistrationWorker.close(),
-  ]);
+  await twilioRegistrationWorker.close();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  await Promise.all([
-    smsWorker.close(),
-    twilioRegistrationWorker.close(),
-  ]);
+  await twilioRegistrationWorker.close();
   await prisma.$disconnect();
   process.exit(0);
 });
