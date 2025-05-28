@@ -4,7 +4,7 @@ import { TwilioRegistrationWorker } from './twilio-registration.worker';
 import { SmsProcessor } from './sms.processor';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TwilioModule } from '../twilio/twilio.module';
-import { SmsModule } from '../sms/sms.module';
+import { SmsService } from '../sms/sms.service';
 import { TwilioQueueService } from '../twilio/twilio-queue.service';
 import { ConfigModule } from '@nestjs/config';
 
@@ -39,9 +39,8 @@ import { ConfigModule } from '@nestjs/config';
     ConfigModule,
     PrismaModule,
     TwilioModule,
-    SmsModule,
   ],
-  providers: [TwilioRegistrationWorker, SmsProcessor, TwilioQueueService],
+  providers: [TwilioRegistrationWorker, SmsProcessor, SmsService, TwilioQueueService],
   exports: [
     // Export Bull queues and queue services so other modules can use them
     BullModule,

@@ -3,8 +3,11 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
+  const logger = new Logger('Bootstrap');
+  
   const app = await NestFactory.create(AppModule);
   
   // Enable CORS with credentials
@@ -29,7 +32,11 @@ async function bootstrap() {
     }),
   );
   
-  await app.listen(process.env.PORT ?? 4200, '0.0.0.0');
-  console.log(`Application running on ${process.env.BACKEND_URL}`);
+  const port = process.env.PORT || 4200;
+  
+  await app.listen(port);
+  
+  logger.log(`Application is running on port ${port}`);
+  logger.log('All modules initialized, including queue processors');
 }
 bootstrap();
