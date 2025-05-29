@@ -78,14 +78,7 @@ export class SmsService {
         };
       }
 
-      // Generate a short URL for the review link
-      // const shortUrlMapping = await this.urlShortenerService.createShortUrl(
-      //   `${this.configService.get<string>('BACKEND_URL')}/rate/${inviteId}`
-      // );
-
-      const shortUrlMapping = {
-        shortUrl: `${this.configService.get<string>('BACKEND_URL')}/rate/${inviteId}`
-      };
+      const inviteUrl = `${this.configService.get<string>('FRONTEND_URL')}/rate/${inviteId}`;
 
       let fromNumber: string;
       let messagingServiceSid: string;
@@ -97,7 +90,7 @@ export class SmsService {
         messagingServiceSid = this.sharedServiceSid;
         
         // Locked template with business name merge field for shared senders
-        smsBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${shortUrlMapping.shortUrl} Reply STOP to opt out.`;
+        smsBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${inviteUrl} Reply STOP to opt out.`;
       } else {
         // For dedicated senders
         fromNumber = business.senderPhone || '';
@@ -109,10 +102,10 @@ export class SmsService {
             business.smsTemplate,
             customer,
             business,
-            shortUrlMapping.shortUrl
+            inviteUrl
           );
         } else {
-          smsBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${shortUrlMapping.shortUrl} Reply STOP to opt out.`;
+          smsBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${inviteUrl} Reply STOP to opt out.`;
         }
       }
 
