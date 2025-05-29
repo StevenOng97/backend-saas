@@ -40,7 +40,7 @@ export class AuthService {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      domain: '.reviewroket.com',  // The leading dot allows sharing across subdomains
+      domain: '.reviewroket.com', // The leading dot allows sharing across subdomains
       maxAge: 24 * 60 * 60 * 1000,
       path: '/',
     });
@@ -48,7 +48,7 @@ export class AuthService {
 
   // Helper function to select safe user fields
   private async getUserSafeFields(userId: string) {
-    return this.prisma.user.findUnique({
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
         id: true,
@@ -57,8 +57,26 @@ export class AuthService {
         lastName: true,
         role: true,
         organizationId: true,
+        organization: {
+          select: {
+            businesses: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
+
+    if (
+      user?.organization?.businesses &&
+      user?.organization?.businesses?.length > 0
+    ) {
+      (user as any).main_business_name = user?.organization?.businesses[0].name;
+    }
+
+    return user;
   }
 
   // Validate user for local strategy
@@ -304,7 +322,7 @@ export class AuthService {
   }
 
   // Logout user
-  async logout(response: Response): Promise<{ message: string }> {    
+  async logout(response: Response): Promise<{ message: string }> {
     response.clearCookie('access_token', {
       httpOnly: true,
       secure: true,
