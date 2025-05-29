@@ -160,6 +160,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,
+        main_business_name: user.main_business_name,
       },
     };
   }
@@ -301,7 +302,7 @@ export class AuthService {
     }
 
     // Get safe user data
-    const safeUser = await this.getUserSafeFields(user.id);
+    const safeUser: any = await this.getUserSafeFields(user.id);
 
     // Generate JWT token
     const accessToken = this.createToken(user.id);
@@ -317,6 +318,7 @@ export class AuthService {
         firstName: safeUser?.firstName || '',
         lastName: safeUser?.lastName || '',
         role: safeUser?.role || '',
+        main_business_name: safeUser?.main_business_name || '',
       },
     };
   }
