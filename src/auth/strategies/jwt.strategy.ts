@@ -47,6 +47,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       },
     });
 
+    if (user?.organization?.businesses && user?.organization?.businesses?.length > 0) {
+      (user as any).main_business_name = user?.organization?.businesses[0].name;
+    }
+
     if (!user) {
       throw new UnauthorizedException();
     }
