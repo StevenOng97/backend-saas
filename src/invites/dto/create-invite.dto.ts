@@ -5,7 +5,7 @@ export class CreateInviteDto {
   @IsUUID()
   customerId: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   message: string;
 
@@ -20,7 +20,7 @@ export class CreateBatchInviteDto {
   @IsUUID(4, { each: true })
   customerIds: string[];
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   message: string;
 
