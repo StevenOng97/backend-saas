@@ -4,7 +4,7 @@ import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
-import { CreateInviteDto } from './dto/create-invite.dto';
+import { CreateInviteDto, CreateBatchInviteDto } from './dto/create-invite.dto';
 import { InviteStatus } from '@prisma/client';
 import { SmsJobData } from '../types/sms-job.interface';
 
@@ -90,6 +90,74 @@ export class InvitesService {
     return {
       inviteId: invite.id,
       jobId: job.id,
+    };
+  }
+
+  async createBatch(businessId: string, organizationId: string, createBatchInviteDto: CreateBatchInviteDto) {
+    const { customerIds, message } = createBatchInviteDto;
+
+    // Verify all customers exist and belong to business
+    const customers = await this.prisma.customer.findMany({
+      where: {
+        id: { in: customerIds },
+        businessId,
+      },
+    });
+
+    if (customers.length !== customerIds.length) {
+      const foundIds = customers.map(c => c.id);
+      const missingIds = customerIds.filter(id => !foundIds.includes(id));
+      throw new NotFoundException(`Customers not found or do not belong to this business: ${missingIds.join(', ')}`);
+    }
+
+    // Set expiration date (30 days from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 30);
+
+    // Prepare invite data for batch creation
+    const inviteData = customerIds.map(customerId => ({
+      businessId,
+      organizationId,
+      customerId,
+      token: crypto.randomBytes(20).toString('hex'),
+      expiresAt,
+      status: InviteStatus.PENDING,
+    }));
+
+    // Create all invites and return them in a single operation
+    const createdInvites = await this.prisma.invite.createManyAndReturn({
+      data: inviteData,
+    });
+
+    this.logger.log(`Created ${createdInvites.length} invites for batch request`);
+
+    // Prepare SMS jobs for all invites
+    const smsJobs = createdInvites.map(invite => ({
+      name: 'send',
+      data: {
+        businessId,
+        customerId: invite.customerId,
+        inviteId: invite.id,
+        message,
+      } as SmsJobData,
+      opts: {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 5000, // 5 seconds
+        },
+      },
+    }));
+
+    // Enqueue all SMS jobs in batch
+    const jobs = await this.smsQueue.addBulk(smsJobs);
+
+    this.logger.log(`Enqueued ${jobs.length} SMS jobs for batch invites`);
+
+    return {
+      invitesCreated: createdInvites.length,
+      jobIds: jobs.map(job => job.id),
+      inviteIds: createdInvites.map(invite => invite.id),
     };
   }
 } 

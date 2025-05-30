@@ -1,9 +1,24 @@
-import { IsNotEmpty, IsString, IsUUID, IsEmail, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsEmail, IsOptional, IsArray, ArrayNotEmpty } from 'class-validator';
 
 export class CreateInviteDto {
   @IsNotEmpty()
   @IsUUID()
   customerId: string;
+
+  @IsNotEmpty()
+  @IsString()
+  message: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}
+
+export class CreateBatchInviteDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID(4, { each: true })
+  customerIds: string[];
 
   @IsNotEmpty()
   @IsString()
