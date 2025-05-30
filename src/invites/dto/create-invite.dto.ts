@@ -1,4 +1,13 @@
-import { IsNotEmpty, IsString, IsUUID, IsEmail, IsOptional, IsArray, ArrayNotEmpty } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsEmail,
+  IsOptional,
+  IsArray,
+  ArrayNotEmpty,
+  IsDateString,
+} from 'class-validator';
 
 export class CreateInviteDto {
   @IsNotEmpty()
@@ -7,11 +16,15 @@ export class CreateInviteDto {
 
   @IsOptional()
   @IsString()
-  message: string;
+  message?: string;
 
   @IsOptional()
   @IsEmail()
   email?: string;
+
+  @IsOptional()
+  @IsDateString()
+  sendAt?: string;
 }
 
 export class CreateBatchInviteDto {
@@ -22,9 +35,13 @@ export class CreateBatchInviteDto {
 
   @IsOptional()
   @IsString()
-  message: string;
+  message?: string;
 
   @IsOptional()
   @IsEmail()
   email?: string;
-} 
+
+  @IsOptional()
+  @IsDateString()
+  sendAt?: string;
+}

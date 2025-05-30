@@ -19,7 +19,7 @@ export class InvitesService {
   ) {}
 
   async create(businessId: string, organizationId: string, createInviteDto: CreateInviteDto) {
-    const { customerId, message } = createInviteDto;
+    const { customerId, message, sendAt } = createInviteDto;
 
     // Verify customer exists and belongs to business
     const customer = await this.prisma.customer.findFirst({
@@ -40,6 +40,15 @@ export class InvitesService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Parse sendAt if provided and validate it's in the future
+    let scheduledSendTime: Date | null = null;
+    if (sendAt) {
+      scheduledSendTime = new Date(sendAt);
+      if (scheduledSendTime <= new Date()) {
+        throw new NotFoundException('sendAt must be a future date');
+      }
+    }
+
     // Create invite record
     const invite = await this.prisma.invite.create({
       data: {
@@ -48,11 +57,12 @@ export class InvitesService {
         customerId,
         token,
         expiresAt,
+        sendAt: scheduledSendTime,
         status: InviteStatus.PENDING,
       },
     });
 
-    this.logger.log(`Created invite for customer ${customerId}: ${invite.id}`);
+    this.logger.log(`Created invite for customer ${customerId}: ${invite.id}${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`);
 
     // Send invite email if email is provided
     // if (email) {
@@ -69,10 +79,17 @@ export class InvitesService {
       businessId,
       customerId,
       inviteId: invite.id,
-      message,
+      message: message || '',
     };
 
-    // Enqueue SMS job
+    // Calculate delay if scheduled
+    let jobDelay = 0;
+    if (scheduledSendTime) {
+      jobDelay = scheduledSendTime.getTime() - Date.now();
+      if (jobDelay < 0) jobDelay = 0; // Failsafe, send immediately if past due
+    }
+
+    // Enqueue SMS job with optional delay
     const job = await this.smsQueue.add(
       'send',
       smsJobData,
@@ -82,19 +99,21 @@ export class InvitesService {
           type: 'exponential',
           delay: 5000, // 5 seconds
         },
+        delay: jobDelay, // Schedule for the specified time
       },
     );
 
-    this.logger.log(`Enqueued SMS job with ID: ${job.id}`);
+    this.logger.log(`Enqueued SMS job with ID: ${job.id}${jobDelay > 0 ? ` with ${Math.round(jobDelay/1000/60)} minute delay` : ''}`);
 
     return {
       inviteId: invite.id,
       jobId: job.id,
+      ...(scheduledSendTime && { scheduledFor: scheduledSendTime.toISOString() }),
     };
   }
 
   async createBatch(businessId: string, organizationId: string, createBatchInviteDto: CreateBatchInviteDto) {
-    const { customerIds, message } = createBatchInviteDto;
+    const { customerIds, message, sendAt } = createBatchInviteDto;
 
     // Verify all customers exist and belong to business
     const customers = await this.prisma.customer.findMany({
@@ -114,6 +133,15 @@ export class InvitesService {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
 
+    // Parse sendAt if provided and validate it's in the future
+    let scheduledSendTime: Date | null = null;
+    if (sendAt) {
+      scheduledSendTime = new Date(sendAt);
+      if (scheduledSendTime <= new Date()) {
+        throw new NotFoundException('sendAt must be a future date');
+      }
+    }
+
     // Prepare invite data for batch creation
     const inviteData = customerIds.map(customerId => ({
       businessId,
@@ -121,6 +149,7 @@ export class InvitesService {
       customerId,
       token: crypto.randomBytes(20).toString('hex'),
       expiresAt,
+      sendAt: scheduledSendTime,
       status: InviteStatus.PENDING,
     }));
 
@@ -129,7 +158,14 @@ export class InvitesService {
       data: inviteData,
     });
 
-    this.logger.log(`Created ${createdInvites.length} invites for batch request`);
+    this.logger.log(`Created ${createdInvites.length} invites for batch request${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`);
+
+    // Calculate base delay if scheduled
+    let baseDelay = 0;
+    if (scheduledSendTime) {
+      baseDelay = scheduledSendTime.getTime() - Date.now();
+      if (baseDelay < 0) baseDelay = 0; // Failsafe, send immediately if past due
+    }
 
     // Prepare SMS jobs for all invites
     const smsJobs = createdInvites.map((invite, index) => ({
@@ -147,18 +183,21 @@ export class InvitesService {
           delay: 5000, // 5 seconds
         },
       },
-      delay: index * 2000, // 2s interval
+      // If scheduled, use baseDelay + staggered intervals
+      // If not scheduled, just use staggered intervals
+      delay: baseDelay + (index * 2000), // 2s interval between each SMS
     }));
 
     // Enqueue all SMS jobs in batch
     const jobs = await this.smsQueue.addBulk(smsJobs);
 
-    this.logger.log(`Enqueued ${jobs.length} SMS jobs for batch invites`);
+    this.logger.log(`Enqueued ${jobs.length} SMS jobs for batch invites${baseDelay > 0 ? ` with ${Math.round(baseDelay/1000/60)} minute base delay` : ''}`);
 
     return {
       invitesCreated: createdInvites.length,
       jobIds: jobs.map(job => job.id),
       inviteIds: createdInvites.map(invite => invite.id),
+      ...(scheduledSendTime && { scheduledFor: scheduledSendTime.toISOString() }),
     };
   }
 } 

@@ -3,12 +3,16 @@ import { Logger } from '@nestjs/common';
 import { Job } from 'bull';
 import { SmsService } from '../sms/sms.service';
 import { SmsJobData, SmsJobResult } from '../types/sms-job.interface';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Processor('sms')
 export class SmsProcessor {
   private readonly logger = new Logger(SmsProcessor.name);
 
-  constructor(private readonly smsService: SmsService) {
+  constructor(
+    private readonly smsService: SmsService,
+    private readonly prisma: PrismaService
+  ) {
     this.logger.log('SmsProcessor initialized and ready to process jobs');
   }
 
@@ -31,9 +35,32 @@ export class SmsProcessor {
   async handleSendInvite(job: Job<SmsJobData>): Promise<SmsJobResult> {
     const { businessId, customerId, inviteId } = job.data;
     
-    this.logger.log(`Processing SMS job ${job.id} for invite ${inviteId}`);
+    this.logger.log(`Processing SMS job ${job.id} for invite ${inviteId}${job.opts.delay ? ` (was scheduled)` : ''}`);
     
     try {
+      // Check if this invite has a specific send time and if we're sending at the right time
+      const invite = await this.prisma.invite.findUnique({
+        where: { id: inviteId },
+        select: { sendAt: true, status: true },
+      });
+
+      if (invite?.sendAt) {
+        const now = new Date();
+        const scheduledTime = new Date(invite.sendAt);
+        
+        // Allow 5 minute window before scheduled time (in case job was processed early)
+        const earlyWindow = new Date(scheduledTime.getTime() - 5 * 60 * 1000);
+        
+        if (now < earlyWindow) {
+          this.logger.warn(`Job ${job.id} processed too early. Scheduled for ${scheduledTime.toISOString()}, current time: ${now.toISOString()}`);
+          // Re-queue the job for the correct time
+          const newDelay = scheduledTime.getTime() - now.getTime();
+          throw new Error(`Rescheduling: too early by ${Math.round((earlyWindow.getTime() - now.getTime()) / 1000 / 60)} minutes`);
+        }
+
+        this.logger.log(`Processing scheduled SMS for invite ${inviteId}. Scheduled: ${scheduledTime.toISOString()}, Actual: ${now.toISOString()}`);
+      }
+
       // Use sendReviewInvite for proper invite handling
       const result = await this.smsService.sendReviewInvite(
         inviteId,
@@ -46,7 +73,7 @@ export class SmsProcessor {
         throw new Error(result.message || 'SMS sending failed');
       }
       
-      this.logger.log(`SMS job ${job.id} completed successfully with SID: ${result.sid}`);
+      this.logger.log(`SMS job ${job.id} completed successfully with SID: ${result.sid}${invite?.sendAt ? ' (scheduled send)' : ''}`);
       return { sid: result.sid };
     } catch (error) {
       this.logger.error(`Error processing SMS job ${job.id}: ${error.message}`);

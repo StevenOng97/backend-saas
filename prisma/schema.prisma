@@ -149,6 +149,7 @@ model Invite {
   ratingValue Int?      @map("rating_value")
   deviceInfo  String?   @map("device_info")
   ipAddress   String?   @map("ip_address")
+  sendAt      DateTime? @map("send_at")
   feedback    Feedback?
 
   @@map("invites")
