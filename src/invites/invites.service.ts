@@ -132,7 +132,7 @@ export class InvitesService {
     this.logger.log(`Created ${createdInvites.length} invites for batch request`);
 
     // Prepare SMS jobs for all invites
-    const smsJobs = createdInvites.map(invite => ({
+    const smsJobs = createdInvites.map((invite, index) => ({
       name: 'send',
       data: {
         businessId,
@@ -147,6 +147,7 @@ export class InvitesService {
           delay: 5000, // 5 seconds
         },
       },
+      delay: index * 2000, // 2s interval
     }));
 
     // Enqueue all SMS jobs in batch
