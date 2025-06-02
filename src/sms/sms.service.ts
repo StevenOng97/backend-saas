@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { TwilioClientService } from '../twilio/twilio-client.service';
-import { SmsStatus } from '@prisma/client';
+import { CustomerStatus, SmsStatus } from '@prisma/client';
 
 @Injectable()
 export class SmsService {
@@ -180,6 +180,11 @@ export class SmsService {
             status: SmsStatus.QUEUED,
             message,
           },
+        });
+
+        await this.prisma.customer.update({
+          where: { id: customerId },
+          data: { status: CustomerStatus.REQUEST_SENT },
         });
 
         this.logger.log(`SMS sent successfully with SID: ${result.sid}`);

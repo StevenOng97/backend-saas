@@ -1,88 +1,49 @@
 import * as crypto from 'crypto';
 import prisma from '../lib/prisma';
-import { SubscriptionPlan, UserRole } from '@prisma/client';
+import { SubscriptionPlan, UserRole, CustomerStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 async function main() {
-  console.log('Seeding the database...');
-
-  // Clean up existing data if any
-  await prisma.smsLog.deleteMany({});
-  await prisma.invite.deleteMany({});
-  await prisma.customer.deleteMany({});
-  await prisma.user.deleteMany({});
-  await prisma.subscription.deleteMany({});
-  await prisma.business.deleteMany({});
-
-  // Create an organization
-  const organization = await prisma.organization.create({
-    data: {},
-  });
-
-  // Create a business
-  const business = await prisma.business.create({
-    data: {
-      name: 'Demo Business',
-      email: 'demo@business.com',
-      phone: '+1234567890',
-      organizationId: organization.id,
-    },
-  });
-
-  console.log('Created business:', business);
-
-  // Create a subscription for the business
-  const subscription = await prisma.subscription.create({
-    data: {
-      organizationId: organization.id,
-      plan: SubscriptionPlan.STARTER,
-      status: 'active',
-      inviteLimit: 3,
-      currentPeriodStart: new Date(),
-      currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-    },
-  });
-
-  console.log('Created subscription:', subscription);
-
-  const password = 'Test@1234';
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  // Create a user for the business
-  const user = await prisma.user.create({
-    data: {
-      authId: crypto.randomUUID(),
-      email: 'owner@business.com',
-      password: hashedPassword,
-      role: UserRole.ADMIN,
-      organizationId: organization.id,
-    },
-  });
-
-  console.log('Created user:', user);
-
-  // Create two customers for the business
-  const customer1 = await prisma.customer.create({
-    data: {
-      businessId: business.id,
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      phone: '+11234567890',
-    },
-  });
-
-  const customer2 = await prisma.customer.create({
-    data: {
-      businessId: business.id,
-      name: 'Jane Smith',
-      email: 'jane.smith@example.com',
-      phone: '+19876543210',
-    },
-  });
-
-  console.log('Created customers:', customer1, customer2);
-
-  console.log('Database seeding completed!');
+  console.log('Starting database seeding...');
+  
+  try {
+    // Query all invites with their associated customers
+    const invites = await prisma.invite.findMany({
+      include: {
+        customer: true
+      }
+    });
+    
+    console.log(`Found ${invites.length} invites in the database`);
+    
+    let updatedCount = 0;
+    
+    // Process each invite
+    for (const invite of invites) {
+      // If the invite has a customer (invite became a customer)
+      if (invite.customerId && invite.customer) {
+        // Update the customer status to REQUEST_SENT
+        await prisma.customer.update({
+          where: {
+            id: invite.customerId
+          },
+          data: {
+            status: CustomerStatus.REQUEST_SENT
+          }
+        });
+        
+        updatedCount++;
+        console.log(`Updated customer ${invite.customer.name || invite.customer.email || invite.customerId} status to REQUEST_SENT`);
+      }
+    }
+    
+    console.log(`Successfully updated ${updatedCount} customers' status to REQUEST_SENT`);
+    console.log('Database seeding completed!');
+    
+  } catch (error) {
+    console.error('Error during seeding:', error);
+    throw error;
+  }
 }
 
 main()

@@ -37,6 +37,12 @@ enum SubscriptionPlan {
   PRO
 }
 
+enum CustomerStatus {
+  REQUEST_SENT
+  REQUEST_WRITTEN
+  NO_REQUEST
+}
+
 model Organization {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now()) @map("created_at")
@@ -120,10 +126,11 @@ model Customer {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @map("updated_at")
 
-  business Business @relation(fields: [businessId], references: [id])
+  business Business       @relation(fields: [businessId], references: [id])
   invites  Invite[]
   smsLogs  SmsLog[]
-  optedOut Boolean  @default(false) @map("opted_out")
+  optedOut Boolean        @default(false) @map("opted_out")
+  status   CustomerStatus @default(NO_REQUEST) @map("status")
 
   @@unique([businessId, email])
   @@map("customers")
@@ -145,24 +152,36 @@ model Invite {
   customer     Customer?    @relation(fields: [customerId], references: [id])
   smsLogs      SmsLog[]
 
-  openedAt    DateTime? @map("opened_at")
-  ratingValue Int?      @map("rating_value")
-  deviceInfo  String?   @map("device_info")
-  ipAddress   String?   @map("ip_address")
-  sendAt      DateTime? @map("send_at")
-  feedback    Feedback?
+  openedAt   DateTime? @map("opened_at")
+  deviceInfo String?   @map("device_info")
+  ipAddress  String?   @map("ip_address")
+  sendAt     DateTime? @map("send_at")
+  rating     Rating?
 
   @@map("invites")
 }
 
-model Feedback {
+model Rating {
   id        String   @id @default(uuid())
   inviteId  String   @unique @map("invite_id")
+  value     Int // 1 = thumbs up, 0 = thumbs down
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  invite   Invite    @relation(fields: [inviteId], references: [id])
+  feedback Feedback?
+
+  @@map("ratings")
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  ratingId  String   @unique @map("rating_id")
   content   String
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @map("updated_at")
 
-  invite Invite @relation(fields: [inviteId], references: [id])
+  rating Rating @relation(fields: [ratingId], references: [id])
 
   @@map("feedback")
 }
