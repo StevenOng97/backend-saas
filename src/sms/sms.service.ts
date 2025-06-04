@@ -82,7 +82,9 @@ export class SmsService {
       }
 
       // Use shortId in the URL if available, otherwise fall back to full inviteId
-      const inviteUrl = this.generateInviteUrl(invite, inviteId);
+      const inviteUrl = `${this.configService.get<string>('FRONTEND_URL')}/rate/${invite.shortId || invite.id}`;
+
+
       this.logger.log(`Invite URL: ${inviteUrl}`);
       this.logger.log(`Frontend URL: ${this.configService.get<string>('FRONTEND_URL')}`);
 
@@ -378,13 +380,5 @@ export class SmsService {
       .replace(/{customer_name}/g, customer.name || 'there')
       .replace(/{business_name}/g, business.name)
       .replace(/{review_link}/g, reviewLink);
-  }
-
-  /**
-   * Generate invite URL using shortId if available, otherwise use full inviteId
-   */
-  private generateInviteUrl(invite: { id: string; shortId: string | null }, fallbackInviteId: string): string {
-    const urlIdentifier = invite.shortId || fallbackInviteId;
-    return `${this.configService.get<string>('FRONTEND_URL')}/rate/${urlIdentifier}`;
   }
 } 
