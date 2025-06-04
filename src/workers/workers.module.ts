@@ -23,18 +23,18 @@ import { ConfigModule } from '@nestjs/config';
         removeOnFail: 5,
       },
     }),
-    BullModule.registerQueue({
-      name: 'twilioRegistration',
-      defaultJobOptions: {
-        attempts: 5,
-        backoff: {
-          type: 'exponential',
-          delay: 10000,
-        },
-        removeOnComplete: 5,
-        removeOnFail: 3,
-      },
-    }),
+    // BullModule.registerQueue({
+    //   name: 'twilioRegistration',
+    //   defaultJobOptions: {
+    //     attempts: 5,
+    //     backoff: {
+    //       type: 'exponential',
+    //       delay: 10000,
+    //     },
+    //     removeOnComplete: 5,
+    //     removeOnFail: 3,
+    //   },
+    // }),
     // Dependencies
     ConfigModule,
     PrismaModule,
