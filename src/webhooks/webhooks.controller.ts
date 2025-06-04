@@ -39,6 +39,11 @@ export class WebhooksController {
     };
   }
 
+  @Post('twilio/failed')
+  async twilioFailedWebhook(@Body() webhookData: any) {
+    this.logger.log(`Received failed SMS from ${webhookData} ${webhookData.from}: "${webhookData.body}" (SID: ${webhookData.sid})`);
+  }
+
   @Post('twilio/incoming')
   async handleIncomingSms(@Body() incomingData: TwilioIncomingSmsDto, @Res() res: Response) {
     const { From, Body: messageBody, MessageSid } = incomingData;
