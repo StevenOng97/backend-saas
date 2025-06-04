@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { TwilioClientService } from '../twilio/twilio-client.service';
 import { CustomerStatus, SmsStatus } from '@prisma/client';
-
+import { TWILIO_ERROR_CODES } from '../../constants';
 @Injectable()
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
@@ -281,7 +281,7 @@ export class SmsService {
   /**
    * Update SMS status based on webhook data
    */
-  async updateSmsStatus(sid: string, status: SmsStatus): Promise<boolean> {
+  async updateSmsStatus(sid: string, status: SmsStatus, errorCode?: string): Promise<boolean> {
     try {
       const smsLog = await this.prisma.smsLog.findFirst({
         where: { twilioSid: sid },
@@ -291,10 +291,17 @@ export class SmsService {
         this.logger.error(`SMS log with SID ${sid} not found`);
         return false;
       }
+      
+      const updateData: any = { status, updatedAt: new Date() };
+      
+      if (status === SmsStatus.FAILED && errorCode) {
+        const errorMessage = TWILIO_ERROR_CODES[errorCode];
+        updateData.message = errorMessage || 'Unknown error occurred';
+      }
 
       await this.prisma.smsLog.update({
         where: { id: smsLog.id },
-        data: { status, updatedAt: new Date() },
+        data: updateData,
       });
 
       if (status === SmsStatus.DELIVERED) {

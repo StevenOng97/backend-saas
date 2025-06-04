@@ -80,6 +80,7 @@ export class WebhooksController {
     const updated = await this.smsService.updateSmsStatus(
       webhookData.MessageSid,
       status,
+      webhookData.ErrorCode,
     );
 
     if (!updated) {
