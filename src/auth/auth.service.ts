@@ -163,6 +163,7 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         main_business_name: user.main_business_name,
+        main_business_id: user.main_business_id,
       },
     };
   }
@@ -321,6 +322,7 @@ export class AuthService {
         lastName: safeUser?.lastName || '',
         role: safeUser?.role || '',
         main_business_name: safeUser?.main_business_name || '',
+        main_business_id: safeUser?.main_business_id || '',
       },
     };
   }
