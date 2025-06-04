@@ -65,8 +65,6 @@ export class TwilioClientService {
 
       // Send the message
       const message = await this.client.messages.create(messageOptions);
-      this.logger.log(`messageOptions: ${JSON.stringify(messageOptions)}`);
-      this.logger.log(`SMS sent successfully with SID: ${message.sid}`);
 
       return {
         sid: message.sid,
