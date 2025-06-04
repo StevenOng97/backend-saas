@@ -32,6 +32,21 @@ import { WorkersModule } from './workers/workers.module';
             redis: {
               ...getUpstashConnectionOptions(configService),
               port: parseInt(configService.get('UPSTASH_REDIS_PORT') || '6379'),
+              maxRetriesPerRequest: 1,
+              retryDelayOnFailover: 100,
+              lazyConnect: true,
+              keepAlive: 30000,
+              connectTimeout: 60000,
+              commandTimeout: 5000,
+            },
+            settings: {
+              stalledInterval: 120000,
+              maxStalledCount: 1,
+              retryProcessDelay: 5000,
+            },
+            defaultJobOptions: {
+              removeOnComplete: false,
+              removeOnFail: false,
             },
           };
         }
@@ -46,9 +61,14 @@ import { WorkersModule } from './workers/workers.module';
             lazyConnect: true,
           },
           settings: {
-            stalledInterval: 60000,
+            stalledInterval: 120000,
             maxStalledCount: 1,
-          }
+            retryProcessDelay: 5000,
+          },
+          defaultJobOptions: {
+            removeOnComplete: false,
+            removeOnFail: false,
+          },
         };
       },
       inject: [ConfigService],
