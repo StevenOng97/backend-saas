@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TwilioIsvService } from '../twilio/twilio-isv.service';
-import { TwilioQueueService } from '../twilio/twilio-queue.service';
+// import { TwilioQueueService } from '../twilio/twilio-queue.service';
 import { SubscriptionPlan } from '@prisma/client';
 
 @Injectable()
@@ -11,7 +11,7 @@ export class UpgradeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly twilioIsvService: TwilioIsvService,
-    private readonly twilioQueueService: TwilioQueueService,
+    // private readonly twilioQueueService: TwilioQueueService,
   ) {}
   
   /**
