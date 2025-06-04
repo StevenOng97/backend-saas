@@ -17,7 +17,6 @@ import { FeedbacksModule } from './feedbacks/feedbacks.module';
 import { TwilioModule } from './twilio/twilio.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WorkersModule } from './workers/workers.module';
-
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -42,7 +41,14 @@ import { WorkersModule } from './workers/workers.module';
           redis: {
             host: configService.get('REDIS_HOST') || 'localhost',
             port: parseInt(configService.get('REDIS_PORT') || '6379'),
+            maxRetriesPerRequest: 1,
+            retryDelayOnFailover: 100,
+            lazyConnect: true,
           },
+          settings: {
+            stalledInterval: 60000,
+            maxStalledCount: 1,
+          }
         };
       },
       inject: [ConfigService],

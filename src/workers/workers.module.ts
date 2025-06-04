@@ -19,8 +19,8 @@ import { ConfigModule } from '@nestjs/config';
           type: 'exponential',
           delay: 5000,
         },
-        removeOnComplete: 10,
-        removeOnFail: 5,
+        removeOnComplete: true, // ✅ Remove immediately after completion
+        removeOnFail: true, // ✅ Remove immediately after failure
       },
     }),
     // BullModule.registerQueue({
@@ -47,4 +47,4 @@ import { ConfigModule } from '@nestjs/config';
     // TwilioQueueService,
   ],
 })
-export class WorkersModule {} 
+export class WorkersModule {}
