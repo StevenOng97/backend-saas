@@ -10,7 +10,8 @@ import {
   ValidationPipe, 
   UsePipes,
   ParseUUIDPipe,
-  UseGuards
+  UseGuards,
+  Get
 } from '@nestjs/common';
 import { SmsTemplatesService } from './sms-templates.service';
 import { CreateSmsTemplateDto, UpdateSmsTemplateDto } from './dto';
@@ -22,6 +23,11 @@ import { User } from '@prisma/client';
 @UseGuards(JwtAuthGuard)
 export class SmsTemplatesController {
   constructor(private readonly smsTemplatesService: SmsTemplatesService) {}
+
+  @Get()
+  async findAll(@CurrentUser() user: User) {
+    return this.smsTemplatesService.findAll(user);
+  }
 
   @Post()
   @UsePipes(new ValidationPipe({ whitelist: true }))

@@ -11,6 +11,14 @@ import { User, UserRole } from '@prisma/client';
 export class SmsTemplatesService {
   constructor(private prisma: PrismaService) {}
 
+  async findAll(currentUser: User) {
+    return this.prisma.smsTemplates.findMany({
+      where: {
+        businessId: (currentUser as any).main_business_id,
+      },
+    });
+  }
+
   async create(createSmsTemplateDto: CreateSmsTemplateDto, currentUser: User) {
     // Verify the business belongs to the user's organization
     if (createSmsTemplateDto.businessId) {
