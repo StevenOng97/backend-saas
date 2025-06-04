@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Twilio } from 'twilio';
+import { MessageListInstanceCreateOptions } from 'twilio/lib/rest/api/v2010/account/message';
 
 @Injectable()
 export class TwilioClientService {
@@ -8,10 +9,12 @@ export class TwilioClientService {
   private readonly client: Twilio;
   private readonly accountSid: string;
   private readonly authToken: string;
+  private readonly apiEndpoint: string;
 
   constructor(private readonly configService: ConfigService) {
     this.accountSid = this.configService.get<string>('TWILIO_ACCOUNT_SID') || '';
     this.authToken = this.configService.get<string>('TWILIO_AUTH_TOKEN') || '';
+    this.apiEndpoint = this.configService.get<string>('BACKEND_URL') || '';
 
     if (!this.accountSid || !this.authToken) {
       this.logger.warn('Twilio credentials not found. SMS sending will be disabled.');
@@ -43,9 +46,10 @@ export class TwilioClientService {
       }
 
       // Prepare message options
-      const messageOptions: any = {
+      const messageOptions: MessageListInstanceCreateOptions = {
         body,
         to,
+        statusCallback: `${this.apiEndpoint}/webhooks/twilio/status`,
       };
 
       // Use either from number or messaging service SID
