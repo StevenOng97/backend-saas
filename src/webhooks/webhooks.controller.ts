@@ -56,6 +56,7 @@ export class WebhooksController {
   async twilioStatusWebhook(@Body() webhookData: TwilioStatusWebhookDto) {
     let status: SmsStatus;
 
+    this.logger.warn(`MessageStatus: ${webhookData.MessageStatus}`);
     // Map Twilio status to our SmsStatus enum
     switch (webhookData.MessageStatus) {
       case 'undelivered':
