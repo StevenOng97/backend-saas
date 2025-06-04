@@ -19,7 +19,11 @@ export class InvitesService {
     @InjectQueue('sms') private smsQueue: Queue,
   ) {}
 
-  async create(businessId: string, organizationId: string, createInviteDto: CreateInviteDto) {
+  async create(
+    businessId: string,
+    organizationId: string,
+    createInviteDto: CreateInviteDto,
+  ) {
     const { customerId, message, sendAt } = createInviteDto;
 
     // Verify customer exists and belongs to business
@@ -31,20 +35,22 @@ export class InvitesService {
     });
 
     if (!customer) {
-      throw new NotFoundException(`Customer not found or does not belong to this business`);
+      throw new NotFoundException(
+        `Customer not found or does not belong to this business`,
+      );
     }
 
     // Create a token for the invite
     const token = crypto.randomBytes(20).toString('hex');
-    
+
     // Generate unique short ID
     const shortId = await createUniqueShortId(async (id: string) => {
       const existing = await this.prisma.invite.findFirst({
-        where: { shortId: id }
+        where: { shortId: id },
       });
       return !!existing;
     });
-    
+
     // Set expiration date (30 days from now)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
@@ -72,7 +78,9 @@ export class InvitesService {
       },
     });
 
-    this.logger.log(`Created invite for customer ${customerId}: ${invite.id} (shortId: ${shortId})${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`);
+    this.logger.log(
+      `Created invite for customer ${customerId}: ${invite.id} (shortId: ${shortId})${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`,
+    );
 
     // Send invite email if email is provided
     // if (email) {
@@ -100,29 +108,33 @@ export class InvitesService {
     }
 
     // Enqueue SMS job with optional delay
-    const job = await this.smsQueue.add(
-      'send',
-      smsJobData,
-      {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 5000, // 5 seconds
-        },
-        delay: jobDelay, // Schedule for the specified time
+    const job = await this.smsQueue.add('send', smsJobData, {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000, // 5 seconds
       },
-    );
+      delay: jobDelay, // Schedule for the specified time
+    });
 
-    this.logger.log(`Enqueued SMS job with ID: ${job.id}${jobDelay > 0 ? ` with ${Math.round(jobDelay/1000/60)} minute delay` : ''}`);
+    this.logger.log(
+      `Enqueued SMS job with ID: ${job.id}${jobDelay > 0 ? ` with ${Math.round(jobDelay / 1000 / 60)} minute delay` : ''}`,
+    );
 
     return {
       inviteId: invite.id,
       jobId: job.id,
-      ...(scheduledSendTime && { scheduledFor: scheduledSendTime.toISOString() }),
+      ...(scheduledSendTime && {
+        scheduledFor: scheduledSendTime.toISOString(),
+      }),
     };
   }
 
-  async createBatch(businessId: string, organizationId: string, createBatchInviteDto: CreateBatchInviteDto) {
+  async createBatch(
+    businessId: string,
+    organizationId: string,
+    createBatchInviteDto: CreateBatchInviteDto,
+  ) {
     const { customerIds, message, sendAt } = createBatchInviteDto;
 
     // Verify all customers exist and belong to business
@@ -134,9 +146,11 @@ export class InvitesService {
     });
 
     if (customers.length !== customerIds.length) {
-      const foundIds = customers.map(c => c.id);
-      const missingIds = customerIds.filter(id => !foundIds.includes(id));
-      throw new NotFoundException(`Customers not found or do not belong to this business: ${missingIds.join(', ')}`);
+      const foundIds = customers.map((c) => c.id);
+      const missingIds = customerIds.filter((id) => !foundIds.includes(id));
+      throw new NotFoundException(
+        `Customers not found or do not belong to this business: ${missingIds.join(', ')}`,
+      );
     }
 
     // Set expiration date (30 days from now)
@@ -158,10 +172,10 @@ export class InvitesService {
       const shortId = await createUniqueShortId(async (id: string) => {
         // Check against existing invites in database
         const existing = await this.prisma.invite.findFirst({
-          where: { shortId: id }
+          where: { shortId: id },
         });
         if (existing) return true;
-        
+
         // Also check against already generated short IDs in this batch
         return shortIds.includes(id);
       });
@@ -185,7 +199,9 @@ export class InvitesService {
       data: inviteData,
     });
 
-    this.logger.log(`Created ${createdInvites.length} invites for batch request (shortIds: ${shortIds.join(', ')})${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`);
+    this.logger.log(
+      `Created ${createdInvites.length} invites for batch request (shortIds: ${shortIds.join(', ')})${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`,
+    );
 
     // Calculate base delay if scheduled
     let baseDelay = 0;
@@ -212,19 +228,39 @@ export class InvitesService {
       },
       // If scheduled, use baseDelay + staggered intervals
       // If not scheduled, just use staggered intervals
-      delay: baseDelay + (index * 2000), // 2s interval between each SMS
+      delay: baseDelay + index * 2000, // 2s interval between each SMS
     }));
 
     // Enqueue all SMS jobs in batch
     const jobs = await this.smsQueue.addBulk(smsJobs);
 
-    this.logger.log(`Enqueued ${jobs.length} SMS jobs for batch invites${baseDelay > 0 ? ` with ${Math.round(baseDelay/1000/60)} minute base delay` : ''}`);
+    this.logger.log(
+      `Enqueued ${jobs.length} SMS jobs for batch invites${baseDelay > 0 ? ` with ${Math.round(baseDelay / 1000 / 60)} minute base delay` : ''}`,
+    );
 
     return {
       invitesCreated: createdInvites.length,
-      jobIds: jobs.map(job => job.id),
-      inviteIds: createdInvites.map(invite => invite.id),
-      ...(scheduledSendTime && { scheduledFor: scheduledSendTime.toISOString() }),
+      jobIds: jobs.map((job) => job.id),
+      inviteIds: createdInvites.map((invite) => invite.id),
+      ...(scheduledSendTime && {
+        scheduledFor: scheduledSendTime.toISOString(),
+      }),
     };
   }
-} 
+
+  async getInviteStatus(id: string) {
+    const invite = await this.prisma.invite.findUnique({
+      select: {
+        id: true,
+        status: true,
+      },
+      where: { id },
+    });
+
+    if (!invite) {
+      throw new NotFoundException('Invite not found');
+    }
+
+    return invite;
+  }
+}

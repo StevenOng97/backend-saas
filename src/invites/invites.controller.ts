@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res, HttpStatus, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Res, HttpStatus, UseGuards, Request, Get, Param } from '@nestjs/common';
 import { Response } from 'express';
 import { InvitesService } from './invites.service';
 import { CreateInviteDto, CreateBatchInviteDto } from './dto/create-invite.dto';
@@ -58,5 +58,11 @@ export class InvitesController {
       message: `${result.invitesCreated} invites created and SMS jobs queued for delivery`,
       ...result,
     });
+  }
+
+  @Get('invite-status/:id') 
+  async getInviteStatus(@Param('id') id: string, @Request() req, @Res() res: Response) {
+    const invite = await this.invitesService.getInviteStatus(id);
+    return res.status(HttpStatus.OK).json(invite);
   }
 } 
