@@ -127,25 +127,34 @@ export class FeedbacksService {
       let redirectUrl: string;
       let requiresFeedback = false;
 
-      if (rating === RatingValue.THUMBS_UP) {
-        // Thumbs up → Send to Google Reviews
-        redirectType = 'google_reviews';
-        redirectUrl =
-          invite.business.googleBusinessReviewLink ||
-          'https://google.com/search?q=review+' +
-            encodeURIComponent(invite.business.name);
-        this.logger.log(
-          `Positive rating for ${invite.business.name} - redirecting to Google Reviews`,
-        );
-      } else {
-        // Thumbs down → Send to private feedback form
-        redirectType = 'feedback_form';
-        redirectUrl = `/feedback-form/${inviteId}`;
-        requiresFeedback = true;
-        this.logger.log(
-          `Negative rating for ${invite.business.name} - redirecting to feedback form`,
-        );
-      }
+      // if (rating === RatingValue.THUMBS_UP) {
+      //   // Thumbs up → Send to Google Reviews
+      //   redirectType = 'google_reviews';
+      //   redirectUrl =
+      //     invite.business.googleBusinessReviewLink ||
+      //     'https://google.com/search?q=review+' +
+      //       encodeURIComponent(invite.business.name);
+      //   this.logger.log(
+      //     `Positive rating for ${invite.business.name} - redirecting to Google Reviews`,
+      //   );
+      // } else {
+      //   // Thumbs down → Send to private feedback form
+      //   redirectType = 'feedback_form';
+      //   redirectUrl = `/feedback-form/${inviteId}`;
+      //   requiresFeedback = true;
+      //   this.logger.log(
+      //     `Negative rating for ${invite.business.name} - redirecting to feedback form`,
+      //   );
+      // }
+
+      redirectType = 'google_reviews';
+      redirectUrl =
+        invite.business.googleBusinessReviewLink ||
+        'https://google.com/search?q=review+' +
+          encodeURIComponent(invite.business.name);
+      this.logger.log(
+        `Positive rating for ${invite.business.name} - redirecting to Google Reviews`,
+      );
 
       return {
         rating: ratingRecord.value,
