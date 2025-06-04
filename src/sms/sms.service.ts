@@ -294,7 +294,7 @@ export class SmsService {
       
       const updateData: any = { status, updatedAt: new Date() };
       
-      if (status === SmsStatus.FAILED && errorCode) {
+      if (errorCode) {
         const errorMessage = TWILIO_ERROR_CODES[errorCode];
         updateData.message = errorMessage || 'Unknown error occurred';
       }
