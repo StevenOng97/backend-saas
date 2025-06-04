@@ -297,6 +297,9 @@ export class SmsService {
       if (errorCode) {
         const errorMessage = TWILIO_ERROR_CODES[errorCode];
         updateData.message = errorMessage || 'Unknown error occurred';
+        updateData.status = SmsStatus.FAILED;
+      } else {
+        updateData.status = SmsStatus.DELIVERED;
       }
 
       await this.prisma.smsLog.update({
