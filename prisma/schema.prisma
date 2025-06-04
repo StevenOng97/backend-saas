@@ -72,12 +72,12 @@ model Business {
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @default(now()) @map("updated_at")
 
-  senderType    String  @default("shared") @map("sender_type")
-  senderPhone   String? @map("sender_phone")
-  a2pBrandId    String? @map("a2p_brand_id")
-  a2pCampaignId String? @map("a2p_campaign_id")
-  smsTemplate   String? @map("sms_template")
-  emailTemplate String? @map("email_template")
+  senderType     String           @default("shared") @map("sender_type")
+  senderPhone    String?          @map("sender_phone")
+  a2pBrandId     String?          @map("a2p_brand_id")
+  a2pCampaignId  String?          @map("a2p_campaign_id")
+  smsTemplates   SmsTemplates[]
+  emailTemplates EmailTemplates[]
 
   organization Organization @relation(fields: [organizationId], references: [id])
   customers    Customer[]
@@ -238,4 +238,28 @@ model UrlMapping {
 
   @@index([urlId])
   @@map("url_mappings")
+}
+
+model SmsTemplates {
+  id         String    @id @default(uuid())
+  name       String
+  template   String
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @default(now()) @map("updated_at")
+  Business   Business? @relation(fields: [businessId], references: [id])
+  businessId String?
+
+  @@map("sms_templates")
+}
+
+model EmailTemplates {
+  id         String    @id @default(uuid())
+  name       String
+  template   String
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @default(now()) @map("updated_at")
+  Business   Business? @relation(fields: [businessId], references: [id])
+  businessId String?
+
+  @@map("email_templates")
 }

@@ -90,7 +90,7 @@ export class SmsService {
 
       let fromNumber: string;
       let messagingServiceSid: string;
-      let smsBody: string;
+      let smsBody: string = "";
 
       // Determine which sender configuration to use
       if (business.senderType === 'shared') {
@@ -105,16 +105,16 @@ export class SmsService {
         messagingServiceSid = business.a2pCampaignId || '';
         
         // Custom template for dedicated senders
-        if (business.smsTemplate) {
-          smsBody = this.renderCustomTemplate(
-            business.smsTemplate,
-            customer,
-            business,
-            inviteUrl
-          );
-        } else {
-          smsBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${inviteUrl} Reply STOP to opt out.`;
-        }
+        // if (business.smsTemplate) {
+        //   smsBody = this.renderCustomTemplate(
+        //     business.smsTemplate,
+        //     customer,
+        //     business,
+        //     inviteUrl
+        //   );
+        // } else {
+        //   smsBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${inviteUrl} Reply STOP to opt out.`;
+        // }
       }
 
       // Send SMS via Twilio
