@@ -7,6 +7,7 @@ import { MailService } from '../mail/mail.service';
 import { CreateInviteDto, CreateBatchInviteDto } from './dto/create-invite.dto';
 import { InviteStatus } from '@prisma/client';
 import { SmsJobData } from '../types/sms-job.interface';
+import { createUniqueShortId } from '../common/utils/short-id.util';
 
 @Injectable()
 export class InvitesService {
@@ -36,6 +37,14 @@ export class InvitesService {
     // Create a token for the invite
     const token = crypto.randomBytes(20).toString('hex');
     
+    // Generate unique short ID
+    const shortId = await createUniqueShortId(async (id: string) => {
+      const existing = await this.prisma.invite.findFirst({
+        where: { shortId: id }
+      });
+      return !!existing;
+    });
+    
     // Set expiration date (30 days from now)
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 30);
@@ -56,13 +65,14 @@ export class InvitesService {
         organizationId,
         customerId,
         token,
+        shortId,
         expiresAt,
         sendAt: scheduledSendTime,
         status: InviteStatus.PENDING,
       },
     });
 
-    this.logger.log(`Created invite for customer ${customerId}: ${invite.id}${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`);
+    this.logger.log(`Created invite for customer ${customerId}: ${invite.id} (shortId: ${shortId})${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`);
 
     // Send invite email if email is provided
     // if (email) {
@@ -142,12 +152,29 @@ export class InvitesService {
       }
     }
 
+    // Generate unique short IDs for all invites
+    const shortIds: string[] = [];
+    for (let i = 0; i < customerIds.length; i++) {
+      const shortId = await createUniqueShortId(async (id: string) => {
+        // Check against existing invites in database
+        const existing = await this.prisma.invite.findFirst({
+          where: { shortId: id }
+        });
+        if (existing) return true;
+        
+        // Also check against already generated short IDs in this batch
+        return shortIds.includes(id);
+      });
+      shortIds.push(shortId);
+    }
+
     // Prepare invite data for batch creation
-    const inviteData = customerIds.map(customerId => ({
+    const inviteData = customerIds.map((customerId, index) => ({
       businessId,
       organizationId,
       customerId,
       token: crypto.randomBytes(20).toString('hex'),
+      shortId: shortIds[index],
       expiresAt,
       sendAt: scheduledSendTime,
       status: InviteStatus.PENDING,
@@ -158,7 +185,7 @@ export class InvitesService {
       data: inviteData,
     });
 
-    this.logger.log(`Created ${createdInvites.length} invites for batch request${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`);
+    this.logger.log(`Created ${createdInvites.length} invites for batch request (shortIds: ${shortIds.join(', ')})${scheduledSendTime ? ` scheduled for ${scheduledSendTime.toISOString()}` : ''}`);
 
     // Calculate base delay if scheduled
     let baseDelay = 0;

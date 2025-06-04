@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { RatingValue } from '@prisma/client';
 
 @Injectable()
 export class FeedbacksService {
@@ -14,9 +15,9 @@ export class FeedbacksService {
   /**
    * Get invite details for rating page (public access)
    */
-  async getInviteForRating(inviteId: string): Promise<any> {
+  async getInviteForRating(inviteId: string, ipAddress: string): Promise<any> {
     const invite = await this.prisma.invite.findUnique({
-      where: { id: inviteId },
+      where: { shortId: inviteId },
       include: {
         business: {
           select: {
@@ -38,6 +39,16 @@ export class FeedbacksService {
       },
     });
 
+    if (invite && !invite.openedAt) {
+      await this.prisma.invite.update({
+        where: { shortId: inviteId },
+        data: {
+          openedAt: new Date(),
+          ipAddress: ipAddress || null,
+        },
+      });
+    }
+
     if (!invite) {
       throw new Error(`Invite with ID ${inviteId} not found`);
     }
@@ -49,6 +60,7 @@ export class FeedbacksService {
 
     return {
       id: invite.id,
+      shortId: invite.shortId,
       businessName: invite.business.name,
       customerName: invite.customer?.name || 'Customer',
       hasRated: !!invite.rating,
@@ -63,14 +75,14 @@ export class FeedbacksService {
    */
   async submitRating(
     inviteId: string,
-    rating: number,
+    rating: RatingValue,
     deviceInfo?: string,
     ipAddress?: string,
   ): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
       // Get invite with business details
       const invite = await tx.invite.findUnique({
-        where: { id: inviteId },
+        where: { shortId: inviteId },
         include: {
           business: {
             select: {
@@ -102,20 +114,10 @@ export class FeedbacksService {
         throw new Error(`This invite has already been rated`);
       }
 
-      // Update invite with tracking info
-      await tx.invite.update({
-        where: { id: inviteId },
-        data: {
-          openedAt: new Date(),
-          deviceInfo: deviceInfo || null,
-          ipAddress: ipAddress || null,
-        },
-      });
-
       // Create rating record
       const ratingRecord = await tx.rating.create({
         data: {
-          inviteId: inviteId,
+          inviteId: invite.id,
           value: rating,
         },
       });
@@ -125,17 +127,24 @@ export class FeedbacksService {
       let redirectUrl: string;
       let requiresFeedback = false;
 
-      if (rating === 1) {
+      if (rating === RatingValue.THUMBS_UP) {
         // Thumbs up → Send to Google Reviews
         redirectType = 'google_reviews';
-        redirectUrl = invite.business.googleBusinessReviewLink || 'https://google.com/search?q=review+' + encodeURIComponent(invite.business.name);
-        this.logger.log(`Positive rating for ${invite.business.name} - redirecting to Google Reviews`);
+        redirectUrl =
+          invite.business.googleBusinessReviewLink ||
+          'https://google.com/search?q=review+' +
+            encodeURIComponent(invite.business.name);
+        this.logger.log(
+          `Positive rating for ${invite.business.name} - redirecting to Google Reviews`,
+        );
       } else {
         // Thumbs down → Send to private feedback form
         redirectType = 'feedback_form';
         redirectUrl = `/feedback-form/${inviteId}`;
         requiresFeedback = true;
-        this.logger.log(`Negative rating for ${invite.business.name} - redirecting to feedback form`);
+        this.logger.log(
+          `Negative rating for ${invite.business.name} - redirecting to feedback form`,
+        );
       }
 
       return {
@@ -153,7 +162,10 @@ export class FeedbacksService {
   /**
    * Submit feedback for negative ratings
    */
-  async submitFeedbackForRating(ratingId: string, content: string): Promise<any> {
+  async submitFeedbackForRating(
+    ratingId: string,
+    content: string,
+  ): Promise<any> {
     return this.prisma.$transaction(async (tx) => {
       // Get rating with related data
       const rating = await tx.rating.findUnique({
@@ -185,7 +197,7 @@ export class FeedbacksService {
       }
 
       // Only allow feedback for negative ratings
-      if (rating.value !== 0) {
+      if (rating.value !== RatingValue.THUMBS_DOWN) {
         throw new Error(`Feedback can only be submitted for negative ratings`);
       }
 
@@ -202,9 +214,15 @@ export class FeedbacksService {
       if (organization && organization.users.length > 0) {
         for (const admin of organization.users) {
           try {
-            await this.notifyAdminOfNegativeFeedback(admin.email, feedback, rating);
+            await this.notifyAdminOfNegativeFeedback(
+              admin.email,
+              feedback,
+              rating,
+            );
           } catch (error) {
-            this.logger.error(`Failed to send notification email to ${admin.email}: ${error.message}`);
+            this.logger.error(
+              `Failed to send notification email to ${admin.email}: ${error.message}`,
+            );
             // Continue sending to other admins even if one fails
           }
         }
@@ -217,7 +235,10 @@ export class FeedbacksService {
   /**
    * Create a new feedback entry (legacy method for backward compatibility)
    */
-  async createFeedback(data: { inviteId: string; content: string }): Promise<any> {
+  async createFeedback(data: {
+    inviteId: string;
+    content: string;
+  }): Promise<any> {
     // Get the rating for this invite first
     const invite = await this.prisma.invite.findUnique({
       where: { id: data.inviteId },
@@ -229,7 +250,9 @@ export class FeedbacksService {
     }
 
     if (!invite.rating) {
-      throw new Error(`No rating found for invite ${data.inviteId}. Please submit a rating first.`);
+      throw new Error(
+        `No rating found for invite ${data.inviteId}. Please submit a rating first.`,
+      );
     }
 
     // Use the new method
@@ -295,30 +318,36 @@ export class FeedbacksService {
     // Calculate statistics
     const totalRatings = ratings.length;
     let totalScore = 0;
-    const ratingCounts = { 0: 0, 1: 0 }; // 0 = thumbs down, 1 = thumbs up
+    const ratingCounts = {
+      [RatingValue.THUMBS_DOWN]: 0,
+      [RatingValue.THUMBS_UP]: 0,
+    }; // 0 = thumbs down, 1 = thumbs up
     let feedbackCount = 0;
 
     ratings.forEach((rating) => {
-      totalScore += rating.value;
-      ratingCounts[rating.value as 0 | 1]++;
+      totalScore += rating.value === RatingValue.THUMBS_UP ? 1 : 0;
+      ratingCounts[rating.value]++;
       if (rating.feedback) {
         feedbackCount++;
       }
     });
 
     const averageRating = totalRatings > 0 ? totalScore / totalRatings : 0;
-    const positivePercentage = totalRatings > 0 ? (ratingCounts[1] / totalRatings) * 100 : 0;
+    const positivePercentage =
+      totalRatings > 0
+        ? (ratingCounts[RatingValue.THUMBS_UP] / totalRatings) * 100
+        : 0;
 
     return {
       totalRatings,
       averageRating,
       positivePercentage,
       ratingCounts: {
-        thumbsUp: ratingCounts[1],
-        thumbsDown: ratingCounts[0],
+        thumbsUp: ratingCounts[RatingValue.THUMBS_UP],
+        thumbsDown: ratingCounts[RatingValue.THUMBS_DOWN],
       },
       feedbackCount,
-      negativeFeedbackShieldActive: ratingCounts[0] > 0, // Has negative ratings
+      negativeFeedbackShieldActive: ratingCounts[RatingValue.THUMBS_DOWN] > 0, // Has negative ratings
     };
   }
 
@@ -327,7 +356,7 @@ export class FeedbacksService {
    */
   async getFeedbackThread(inviteId: string): Promise<any> {
     const invite = await this.prisma.invite.findUnique({
-      where: { id: inviteId },
+      where: { shortId: inviteId },
       include: {
         business: {
           select: {
@@ -358,23 +387,28 @@ export class FeedbacksService {
     return {
       invite: {
         id: invite.id,
+        shortId: invite.shortId,
         createdAt: invite.createdAt,
         openedAt: invite.openedAt,
       },
       business: invite.business,
       customer: invite.customer,
-      rating: invite.rating ? {
-        id: invite.rating.id,
-        value: invite.rating.value,
-        createdAt: invite.rating.createdAt,
-      } : null,
-      feedback: invite.rating?.feedback ? {
-        id: invite.rating.feedback.id,
-        content: invite.rating.feedback.content,
-        createdAt: invite.rating.feedback.createdAt,
-        updatedAt: invite.rating.feedback.updatedAt,
-      } : null,
-      hasNegativeRating: invite.rating?.value === 0,
+      rating: invite.rating
+        ? {
+            id: invite.rating.id,
+            value: invite.rating.value,
+            createdAt: invite.rating.createdAt,
+          }
+        : null,
+      feedback: invite.rating?.feedback
+        ? {
+            id: invite.rating.feedback.id,
+            content: invite.rating.feedback.content,
+            createdAt: invite.rating.feedback.createdAt,
+            updatedAt: invite.rating.feedback.updatedAt,
+          }
+        : null,
+      hasNegativeRating: invite.rating?.value === RatingValue.THUMBS_DOWN,
       hasFeedback: !!invite.rating?.feedback,
     };
   }
@@ -390,7 +424,7 @@ export class FeedbacksService {
     const { invite } = rating;
     const { business, customer } = invite;
     const customerName = customer?.name || 'A customer';
-    
+
     // Create HTML content for the notification email
     const htmlContent = `
       <div>
@@ -429,11 +463,13 @@ Dashboard Link: ${process.env.FRONTEND_URL}/dashboard/feedback/${invite.id}
       await this.mailService.sendInviteEmail(
         email,
         '', // We're reusing the invite email method but not using the invite code
-        textContent
+        textContent,
       );
       this.logger.log(`Sent negative feedback notification email to ${email}`);
     } catch (error) {
-      this.logger.error(`Failed to send negative feedback notification: ${error.message}`);
+      this.logger.error(
+        `Failed to send negative feedback notification: ${error.message}`,
+      );
     }
   }
 
@@ -449,4 +485,4 @@ Dashboard Link: ${process.env.FRONTEND_URL}/dashboard/feedback/${invite.id}
     // This assumes the feedback has a rating relation
     return this.notifyAdminOfNegativeFeedback(email, feedback, { invite });
   }
-} 
+}

@@ -43,6 +43,11 @@ enum CustomerStatus {
   NO_REQUEST
 }
 
+enum RatingValue {
+  THUMBS_UP
+  THUMBS_DOWN
+}
+
 model Organization {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now()) @map("created_at")
@@ -138,6 +143,7 @@ model Customer {
 
 model Invite {
   id             String       @id @default(uuid())
+  shortId        String?      @unique @map("short_id")
   businessId     String       @map("business_id")
   organizationId String       @map("organization_id")
   customerId     String?      @map("customer_id")
@@ -162,11 +168,11 @@ model Invite {
 }
 
 model Rating {
-  id        String   @id @default(uuid())
-  inviteId  String   @unique @map("invite_id")
-  value     Int // 1 = thumbs up, 0 = thumbs down
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @map("updated_at")
+  id        String      @id @default(uuid())
+  inviteId  String      @unique @map("invite_id")
+  value     RatingValue
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @default(now()) @map("updated_at")
 
   invite   Invite    @relation(fields: [inviteId], references: [id])
   feedback Feedback?

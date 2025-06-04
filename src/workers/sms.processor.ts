@@ -41,7 +41,7 @@ export class SmsProcessor {
       // Check if this invite has a specific send time and if we're sending at the right time
       const invite = await this.prisma.invite.findUnique({
         where: { id: inviteId },
-        select: { sendAt: true, status: true },
+        select: { sendAt: true, status: true, shortId: true },
       });
 
       if (invite?.sendAt) {
@@ -58,7 +58,7 @@ export class SmsProcessor {
           throw new Error(`Rescheduling: too early by ${Math.round((earlyWindow.getTime() - now.getTime()) / 1000 / 60)} minutes`);
         }
 
-        this.logger.log(`Processing scheduled SMS for invite ${inviteId}. Scheduled: ${scheduledTime.toISOString()}, Actual: ${now.toISOString()}`);
+        this.logger.log(`Processing scheduled SMS for invite ${inviteId} ${invite?.shortId ? `(shortId: ${invite.shortId})` : ''}. Scheduled: ${scheduledTime.toISOString()}, Actual: ${now.toISOString()}`);
       }
 
       // Use sendReviewInvite for proper invite handling

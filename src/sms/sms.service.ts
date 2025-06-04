@@ -36,7 +36,10 @@ export class SmsService {
       const [business, customer, invite] = await Promise.all([
         this.prisma.business.findUnique({ where: { id: businessId } }),
         this.prisma.customer.findUnique({ where: { id: customerId } }),
-        this.prisma.invite.findUnique({ where: { id: inviteId } }),
+        this.prisma.invite.findUnique({ 
+          where: { id: inviteId },
+          select: { id: true, shortId: true }
+        }),
       ]);
 
       if (!business || !customer || !invite) {
@@ -78,7 +81,8 @@ export class SmsService {
         };
       }
 
-      const inviteUrl = `${this.configService.get<string>('FRONTEND_URL')}/rate/${inviteId}`;
+      // Use shortId in the URL if available, otherwise fall back to full inviteId
+      const inviteUrl = this.generateInviteUrl(invite, inviteId);
 
       let fromNumber: string;
       let messagingServiceSid: string;
@@ -372,5 +376,13 @@ export class SmsService {
       .replace(/{customer_name}/g, customer.name || 'there')
       .replace(/{business_name}/g, business.name)
       .replace(/{review_link}/g, reviewLink);
+  }
+
+  /**
+   * Generate invite URL using shortId if available, otherwise use full inviteId
+   */
+  private generateInviteUrl(invite: { id: string; shortId: string | null }, fallbackInviteId: string): string {
+    const urlIdentifier = invite.shortId || fallbackInviteId;
+    return `${this.configService.get<string>('FRONTEND_URL')}/rate/${urlIdentifier}`;
   }
 } 

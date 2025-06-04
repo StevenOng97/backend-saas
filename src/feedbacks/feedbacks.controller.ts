@@ -1,7 +1,8 @@
 import { Controller, Get, Post, Body, Param, Query, HttpStatus, NotFoundException, Logger, UseGuards, Req, BadRequestException } from '@nestjs/common';
-import { Request } from 'express';
+import { request, Request } from 'express';
 import { FeedbacksService } from './feedbacks.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RatingValue } from '@prisma/client';
 
 @Controller('feedbacks')
 export class FeedbacksController {
@@ -18,7 +19,9 @@ export class FeedbacksController {
   @Get('rate/:inviteId')
   async getInviteForRating(@Param('inviteId') inviteId: string) {
     try {
-      const invite = await this.feedbacksService.getInviteForRating(inviteId);
+      const ipAddress = request.ip || request.connection.remoteAddress || 'unknown';
+
+      const invite = await this.feedbacksService.getInviteForRating(inviteId, ipAddress);
       return {
         status: HttpStatus.OK,
         data: invite,
@@ -44,14 +47,14 @@ export class FeedbacksController {
   @Post('rate/:inviteId/rating')
   async submitRating(
     @Param('inviteId') inviteId: string,
-    @Body() ratingData: { rating: number; deviceInfo?: string },
+    @Body() ratingData: { rating: RatingValue; deviceInfo?: string },
     @Req() request: Request,
   ) {
     try {
       const { rating, deviceInfo } = ratingData;
       
       // Validate rating value (1 = thumbs up, 0 = thumbs down)
-      if (rating !== 0 && rating !== 1) {
+      if (rating !== RatingValue.THUMBS_UP && rating !== RatingValue.THUMBS_DOWN) {
         throw new BadRequestException('Rating must be 0 (thumbs down) or 1 (thumbs up)');
       }
 
@@ -66,7 +69,7 @@ export class FeedbacksController {
         ipAddress,
       );
 
-      this.logger.log(`Rating submitted for invite ${inviteId}: ${rating === 1 ? 'thumbs up' : 'thumbs down'}`);
+      this.logger.log(`Rating submitted for invite ${inviteId}: ${rating === RatingValue.THUMBS_UP ? 'thumbs up' : 'thumbs down'}`);
 
       return {
         status: HttpStatus.OK,
