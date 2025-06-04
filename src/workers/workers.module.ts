@@ -22,11 +22,6 @@ import { ConfigModule } from '@nestjs/config';
         removeOnComplete: 0,    // ✅ Don't keep any completed jobs (most aggressive)
         removeOnFail: 0,       // ✅ Don't keep any failed jobs (most aggressive)
       },
-      // ✅ Add queue-specific settings to reduce Redis polling
-      settings: {
-        stalledInterval: 180000,    // Check for stalled jobs every 3 minutes
-        maxStalledCount: 1,
-      },
     }),
     // BullModule.registerQueue({
     //   name: 'twilioRegistration',

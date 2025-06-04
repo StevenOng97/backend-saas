@@ -26,7 +26,10 @@ import { WorkersModule } from './workers/workers.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => {
         // Check if we should use Upstash or local Redis
-        if (configService.get('UPSTASH_REDIS_URL') && configService.get('UPSTASH_REDIS_TOKEN')) {
+        if (
+          configService.get('UPSTASH_REDIS_URL') &&
+          configService.get('UPSTASH_REDIS_TOKEN')
+        ) {
           // For Upstash, we need to use custom connection
           return {
             redis: {
@@ -39,18 +42,9 @@ import { WorkersModule } from './workers/workers.module';
               connectTimeout: 60000,
               commandTimeout: 5000,
             },
-            settings: {
-              stalledInterval: 120000,
-              maxStalledCount: 1,
-              retryProcessDelay: 5000,
-            },
-            defaultJobOptions: {
-              removeOnComplete: false,
-              removeOnFail: false,
-            },
           };
         }
-        
+
         // Fallback to local Redis
         return {
           redis: {
