@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bull';
-import { TwilioRegistrationWorker } from './twilio-registration.worker';
+// import { TwilioRegistrationWorker } from './twilio-registration.worker';
 import { SmsProcessor } from './sms.processor';
 import { PrismaModule } from '../prisma/prisma.module';
 import { TwilioModule } from '../twilio/twilio.module';
 import { SmsService } from '../sms/sms.service';
-import { TwilioQueueService } from '../twilio/twilio-queue.service';
+// import { TwilioQueueService } from '../twilio/twilio-queue.service';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
@@ -40,11 +40,11 @@ import { ConfigModule } from '@nestjs/config';
     PrismaModule,
     TwilioModule,
   ],
-  providers: [TwilioRegistrationWorker, SmsProcessor, SmsService, TwilioQueueService],
+  providers: [SmsProcessor, SmsService],
   exports: [
     // Export Bull queues and queue services so other modules can use them
     BullModule,
-    TwilioQueueService,
+    // TwilioQueueService,
   ],
 })
 export class WorkersModule {} 
