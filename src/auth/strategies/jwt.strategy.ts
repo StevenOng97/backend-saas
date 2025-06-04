@@ -49,6 +49,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (user?.organization?.businesses && user?.organization?.businesses?.length > 0) {
       (user as any).main_business_name = user?.organization?.businesses[0].name;
+      (user as any).main_business_id = user?.organization?.businesses[0].id;
     }
 
     if (!user) {

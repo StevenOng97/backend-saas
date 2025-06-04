@@ -62,6 +62,7 @@ export class AuthService {
             businesses: {
               select: {
                 name: true,
+                id: true,
               },
             },
           },
@@ -74,6 +75,7 @@ export class AuthService {
       user?.organization?.businesses?.length > 0
     ) {
       (user as any).main_business_name = user?.organization?.businesses[0].name;
+      (user as any).main_business_id = user?.organization?.businesses[0].id;
     }
 
     return user;

@@ -17,6 +17,8 @@ import { FeedbacksModule } from './feedbacks/feedbacks.module';
 import { TwilioModule } from './twilio/twilio.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WorkersModule } from './workers/workers.module';
+import { SmsTemplatesModule } from './sms-templates/sms-templates.module';
+import { EmailTemplatesModule } from './email-templates/email-templates.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -82,6 +84,8 @@ import { WorkersModule } from './workers/workers.module';
     TwilioModule,
     SubscriptionsModule,
     WorkersModule,
+    SmsTemplatesModule,
+    EmailTemplatesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
