@@ -249,18 +249,28 @@ export class InvitesService {
   }
 
   async getInviteStatus(id: string) {
-    const invite = await this.prisma.invite.findUnique({
+    const smsLog = await this.prisma.smsLog.findFirst({
       select: {
-        id: true,
+        inviteId: true,
         status: true,
       },
-      where: { id },
+      where: {
+        inviteId: id,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
 
-    if (!invite) {
-      throw new NotFoundException('Invite not found');
+    if (!smsLog) {
+      throw new NotFoundException('SMS log not found');
     }
 
-    return invite;
+    const response = {
+      id: smsLog.inviteId,
+      status: smsLog.status,
+    };
+
+    return response;
   }
 }
