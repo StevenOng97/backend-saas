@@ -190,11 +190,6 @@ export class SmsService {
           },
         });
 
-        await this.prisma.customer.update({
-          where: { id: customerId },
-          data: { status: CustomerStatus.REQUEST_SENT },
-        });
-
         this.logger.log(`SMS sent successfully with SID: ${result.sid}`);
         return { 
           sid: result.sid, 
@@ -301,6 +296,14 @@ export class SmsService {
         where: { id: smsLog.id },
         data: { status, updatedAt: new Date() },
       });
+
+      if (status === SmsStatus.DELIVERED) {
+        await this.prisma.customer.update({
+          where: { id: smsLog.customerId },
+          data: { status: CustomerStatus.REQUEST_SENT },
+        });
+      }
+
 
       this.logger.log(`Updated SMS status for SID ${sid} to ${status}`);
       return true;
