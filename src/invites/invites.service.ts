@@ -253,6 +253,7 @@ export class InvitesService {
       select: {
         inviteId: true,
         status: true,
+        message: true,
       },
       where: {
         inviteId: id,
@@ -269,6 +270,7 @@ export class InvitesService {
     const response = {
       id: smsLog.inviteId,
       status: smsLog.status,
+      message: smsLog.message,
     };
 
     return response;
