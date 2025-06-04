@@ -19,8 +19,13 @@ import { ConfigModule } from '@nestjs/config';
           type: 'exponential',
           delay: 5000,
         },
-        removeOnComplete: 0,    // ✅ Don't keep any completed jobs (most aggressive)
-        removeOnFail: 0,       // ✅ Don't keep any failed jobs (most aggressive)
+        removeOnComplete: 2,    // Keep only 2 completed jobs (minimal but not 0)
+        removeOnFail: 2,       // Keep only 2 failed jobs (minimal but not 0)
+      },
+      // Conservative settings to reduce Redis polling
+      settings: {
+        stalledInterval: 60000,    // Check for stalled jobs every 60 seconds (vs 30s default)
+        maxStalledCount: 1,        // Reduce stalled job checks
       },
     }),
     // BullModule.registerQueue({

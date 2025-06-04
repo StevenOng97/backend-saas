@@ -35,33 +35,31 @@ import { WorkersModule } from './workers/workers.module';
             redis: {
               ...getUpstashConnectionOptions(configService),
               port: parseInt(configService.get('UPSTASH_REDIS_PORT') || '6379'),
-              maxRetriesPerRequest: 1,
-              retryDelayOnFailover: 100,
-              lazyConnect: true,
-              keepAlive: 30000,
-              connectTimeout: 60000,
-              commandTimeout: 5000,
+              // Conservative Redis optimizations
+              maxRetriesPerRequest: 1,        // Reduce retry attempts
+              connectTimeout: 60000,          // Longer connection timeout
+              commandTimeout: 5000,           // Shorter command timeout
+            },
+            // Global settings to reduce Redis polling
+            settings: {
+              stalledInterval: 60000,         // Check for stalled jobs every 60 seconds
+              maxStalledCount: 1,
             },
           };
         }
-
+        
         // Fallback to local Redis
         return {
           redis: {
             host: configService.get('REDIS_HOST') || 'localhost',
             port: parseInt(configService.get('REDIS_PORT') || '6379'),
             maxRetriesPerRequest: 1,
-            retryDelayOnFailover: 100,
-            lazyConnect: true,
+            connectTimeout: 60000,
+            commandTimeout: 5000,
           },
           settings: {
-            stalledInterval: 120000,
+            stalledInterval: 60000,
             maxStalledCount: 1,
-            retryProcessDelay: 5000,
-          },
-          defaultJobOptions: {
-            removeOnComplete: false,
-            removeOnFail: false,
           },
         };
       },
