@@ -83,6 +83,8 @@ export class SmsService {
 
       // Use shortId in the URL if available, otherwise fall back to full inviteId
       const inviteUrl = this.generateInviteUrl(invite, inviteId);
+      this.logger.log(`Invite URL: ${inviteUrl}`);
+      this.logger.log(`Frontend URL: ${this.configService.get<string>('FRONTEND_URL')}`);
 
       let fromNumber: string;
       let messagingServiceSid: string;
