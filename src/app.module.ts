@@ -17,8 +17,7 @@ import { FeedbacksModule } from './feedbacks/feedbacks.module';
 import { TwilioModule } from './twilio/twilio.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WorkersModule } from './workers/workers.module';
-import { SmsTemplatesModule } from './sms-templates/sms-templates.module';
-import { EmailTemplatesModule } from './email-templates/email-templates.module';
+import { CampaignsModule } from './campaigns/campaigns.module';
 import { GoogleMyBusinessModule } from './google-my-business/google-my-business.module';
 @Module({
   imports: [
@@ -85,8 +84,7 @@ import { GoogleMyBusinessModule } from './google-my-business/google-my-business.
     TwilioModule,
     SubscriptionsModule,
     WorkersModule,
-    SmsTemplatesModule,
-    EmailTemplatesModule,
+    CampaignsModule,
     GoogleMyBusinessModule,
   ],
   controllers: [AppController],

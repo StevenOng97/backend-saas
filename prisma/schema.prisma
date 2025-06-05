@@ -62,25 +62,24 @@ model Organization {
 }
 
 model Business {
-  id                       String   @id @default(uuid())
+  id                       String    @id @default(uuid())
   name                     String
   email                    String?
   phone                    String?
-  googleBusinessReviewLink String?  @map("google_business_review_link")
-  googleLocationId         String?  @map("google_location_id")
-  googlePlaceId            String?  @map("google_place_id")
+  googleBusinessReviewLink String?   @map("google_business_review_link")
+  googleLocationId         String?   @map("google_location_id")
+  googlePlaceId            String?   @map("google_place_id")
   lastReviewCheck          DateTime? @map("last_review_check")
-  organizationId           String   @map("organization_id")
-  isMainLocation           Boolean  @default(false) @map("is_main_location")
-  createdAt                DateTime @default(now()) @map("created_at")
-  updatedAt                DateTime @default(now()) @map("updated_at")
+  organizationId           String    @map("organization_id")
+  isMainLocation           Boolean   @default(false) @map("is_main_location")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @default(now()) @map("updated_at")
 
   senderType     String           @default("shared") @map("sender_type")
   senderPhone    String?          @map("sender_phone")
   a2pBrandId     String?          @map("a2p_brand_id")
   a2pCampaignId  String?          @map("a2p_campaign_id")
-  smsTemplates   SmsTemplates[]
-  emailTemplates EmailTemplates[]
+  campaigns      Campaign[]
 
   organization Organization @relation(fields: [organizationId], references: [id])
   customers    Customer[]
@@ -243,26 +242,27 @@ model UrlMapping {
   @@map("url_mappings")
 }
 
-model SmsTemplates {
-  id         String    @id @default(uuid())
-  name       String
-  template   String
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @default(now()) @map("updated_at")
-  Business   Business? @relation(fields: [businessId], references: [id])
-  businessId String?
-
-  @@map("sms_templates")
+enum CampaignType {
+  EMAIL
+  SMS
 }
 
-model EmailTemplates {
-  id         String    @id @default(uuid())
-  name       String
-  template   String
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @default(now()) @map("updated_at")
-  Business   Business? @relation(fields: [businessId], references: [id])
-  businessId String?
+model Campaign {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  type        CampaignType
+  status      String?
+  subject     String? // Email only
+  content     String
+  sendDelay   Int          @map("send_delay") // day
+  autoSend    Boolean      @default(false) @map("auto_send")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @default(now()) @map("updated_at")
 
-  @@map("email_templates")
+  followUpSequence Json? @map("follow_up_sequence")
+  businessId String   @map("business_id")
+  Business   Business @relation(fields: [businessId], references: [id])
+
+  @@map("campaigns")
 }
