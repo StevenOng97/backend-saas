@@ -19,9 +19,7 @@ export class CampaignsService {
           organizationId: currentUser.organizationId,
         },
       },
-      include: {
-        Business: true,
-      },
+
       orderBy: {
         createdAt: 'desc',
       },
@@ -36,9 +34,6 @@ export class CampaignsService {
           organizationId: currentUser.organizationId,
         },
       },
-      include: {
-        Business: true,
-      },
     });
 
     if (!campaign) {
@@ -51,7 +46,9 @@ export class CampaignsService {
   async create(createCampaignDto: CreateCampaignDto, currentUser: User) {
     // BusinessId is required for campaign creation
     if (!createCampaignDto.businessId) {
-      throw new BadRequestException('BusinessId is required for campaign creation');
+      throw new BadRequestException(
+        'BusinessId is required for campaign creation',
+      );
     }
 
     // Verify the business belongs to the user's organization
@@ -63,11 +60,16 @@ export class CampaignsService {
     });
 
     if (!business) {
-      throw new NotFoundException(`Business with ID ${createCampaignDto.businessId} not found`);
+      throw new NotFoundException(
+        `Business with ID ${createCampaignDto.businessId} not found`,
+      );
     }
 
     // Validate that EMAIL campaigns have a subject
-    if (createCampaignDto.type === CampaignType.EMAIL && !createCampaignDto.subject) {
+    if (
+      createCampaignDto.type === CampaignType.EMAIL &&
+      !createCampaignDto.subject
+    ) {
       throw new BadRequestException('Email campaigns must have a subject');
     }
 
@@ -83,9 +85,6 @@ export class CampaignsService {
         autoSend: createCampaignDto.autoSend || false,
         followUpSequence: createCampaignDto.followUpSequence || {},
         businessId: createCampaignDto.businessId,
-      },
-      include: {
-        Business: true,
       },
     });
 
@@ -105,9 +104,6 @@ export class CampaignsService {
           organizationId: currentUser.organizationId,
         },
       },
-      include: {
-        Business: true,
-      },
     });
 
     if (!existingCampaign) {
@@ -115,14 +111,19 @@ export class CampaignsService {
     }
 
     // Only admins and business owners can update campaigns
-    if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.BUSINESS_OWNER) {
-      throw new ForbiddenException('Insufficient permissions to update campaigns');
+    if (
+      currentUser.role !== UserRole.ADMIN &&
+      currentUser.role !== UserRole.BUSINESS_OWNER
+    ) {
+      throw new ForbiddenException(
+        'Insufficient permissions to update campaigns',
+      );
     }
 
     // Validate that EMAIL campaigns have a subject
     const finalType = updateCampaignDto.type || existingCampaign.type;
     const finalSubject = updateCampaignDto.subject || existingCampaign.subject;
-    
+
     if (finalType === CampaignType.EMAIL && !finalSubject) {
       throw new BadRequestException('Email campaigns must have a subject');
     }
@@ -132,14 +133,26 @@ export class CampaignsService {
         where: { id },
         data: {
           ...(updateCampaignDto.name && { name: updateCampaignDto.name }),
-          ...(updateCampaignDto.description !== undefined && { description: updateCampaignDto.description }),
+          ...(updateCampaignDto.description !== undefined && {
+            description: updateCampaignDto.description,
+          }),
           ...(updateCampaignDto.type && { type: updateCampaignDto.type }),
           ...(updateCampaignDto.status && { status: updateCampaignDto.status }),
-          ...(updateCampaignDto.subject !== undefined && { subject: updateCampaignDto.subject }),
-          ...(updateCampaignDto.content && { content: updateCampaignDto.content }),
-          ...(updateCampaignDto.sendDelay !== undefined && { sendDelay: updateCampaignDto.sendDelay }),
-          ...(updateCampaignDto.autoSend !== undefined && { autoSend: updateCampaignDto.autoSend }),
-          ...(updateCampaignDto.followUpSequence !== undefined && { followUpSequence: updateCampaignDto.followUpSequence }),
+          ...(updateCampaignDto.subject !== undefined && {
+            subject: updateCampaignDto.subject,
+          }),
+          ...(updateCampaignDto.content && {
+            content: updateCampaignDto.content,
+          }),
+          ...(updateCampaignDto.sendDelay !== undefined && {
+            sendDelay: updateCampaignDto.sendDelay,
+          }),
+          ...(updateCampaignDto.autoSend !== undefined && {
+            autoSend: updateCampaignDto.autoSend,
+          }),
+          ...(updateCampaignDto.followUpSequence !== undefined && {
+            followUpSequence: updateCampaignDto.followUpSequence,
+          }),
           updatedAt: new Date(),
         },
         include: {
@@ -163,9 +176,6 @@ export class CampaignsService {
           organizationId: currentUser.organizationId,
         },
       },
-      include: {
-        Business: true,
-      },
     });
 
     if (!existingCampaign) {
@@ -173,8 +183,13 @@ export class CampaignsService {
     }
 
     // Only admins and business owners can delete campaigns
-    if (currentUser.role !== UserRole.ADMIN && currentUser.role !== UserRole.BUSINESS_OWNER) {
-      throw new ForbiddenException('Insufficient permissions to delete campaigns');
+    if (
+      currentUser.role !== UserRole.ADMIN &&
+      currentUser.role !== UserRole.BUSINESS_OWNER
+    ) {
+      throw new ForbiddenException(
+        'Insufficient permissions to delete campaigns',
+      );
     }
 
     try {
@@ -203,9 +218,7 @@ export class CampaignsService {
           organizationId: currentUser.organizationId,
         },
       },
-      include: {
-        Business: true,
-      },
+
       orderBy: {
         createdAt: 'desc',
       },
@@ -219,4 +232,4 @@ export class CampaignsService {
   async findEmailTemplates(currentUser: User) {
     return this.findByType(CampaignType.EMAIL, currentUser);
   }
-} 
+}
