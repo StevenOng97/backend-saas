@@ -19,6 +19,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WorkersModule } from './workers/workers.module';
 import { SmsTemplatesModule } from './sms-templates/sms-templates.module';
 import { EmailTemplatesModule } from './email-templates/email-templates.module';
+import { GoogleMyBusinessModule } from './google-my-business/google-my-business.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -86,6 +87,7 @@ import { EmailTemplatesModule } from './email-templates/email-templates.module';
     WorkersModule,
     SmsTemplatesModule,
     EmailTemplatesModule,
+    GoogleMyBusinessModule,
   ],
   controllers: [AppController],
   providers: [AppService],
