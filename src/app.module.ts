@@ -18,6 +18,7 @@ import { TwilioModule } from './twilio/twilio.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WorkersModule } from './workers/workers.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
+import { TemplatesModule } from './templates/templates.module';
 import { GoogleMyBusinessModule } from './google-my-business/google-my-business.module';
 @Module({
   imports: [
@@ -85,6 +86,7 @@ import { GoogleMyBusinessModule } from './google-my-business/google-my-business.
     SubscriptionsModule,
     WorkersModule,
     CampaignsModule,
+    TemplatesModule,
     GoogleMyBusinessModule,
   ],
   controllers: [AppController],

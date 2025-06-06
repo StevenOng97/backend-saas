@@ -75,16 +75,17 @@ model Business {
   createdAt                DateTime  @default(now()) @map("created_at")
   updatedAt                DateTime  @default(now()) @map("updated_at")
 
-  senderType     String           @default("shared") @map("sender_type")
-  senderPhone    String?          @map("sender_phone")
-  a2pBrandId     String?          @map("a2p_brand_id")
-  a2pCampaignId  String?          @map("a2p_campaign_id")
-  campaigns      Campaign[]
+  senderType    String     @default("shared") @map("sender_type")
+  senderPhone   String?    @map("sender_phone")
+  a2pBrandId    String?    @map("a2p_brand_id")
+  a2pCampaignId String?    @map("a2p_campaign_id")
+  campaigns     Campaign[]
 
   organization Organization @relation(fields: [organizationId], references: [id])
   customers    Customer[]
   invites      Invite[]
   smsLogs      SmsLog[]
+  Template     Template[]
 
   @@unique([organizationId, email])
   @@map("businesses")
@@ -226,7 +227,7 @@ model SmsLog {
   business Business @relation(fields: [businessId], references: [id])
   customer Customer @relation(fields: [customerId], references: [id])
   invite   Invite?  @relation(fields: [inviteId], references: [id])
-
+  
   @@map("sms_logs")
 }
 
@@ -260,9 +261,32 @@ model Campaign {
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @default(now()) @map("updated_at")
 
-  followUpSequence Json? @map("follow_up_sequence")
+  followUpSequence Json?    @map("follow_up_sequence")
+  businessId       String   @map("business_id")
+  Business         Business @relation(fields: [businessId], references: [id])
+
+  @@map("campaigns")
+}
+
+enum TemplateType {
+  EMAIL
+  SMS
+}
+
+model Template {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  type        TemplateType
+  status      String?      @default("active")
+  subject     String? // Email only
+  content     String
+  isDefault   Boolean      @default(false) @map("is_default")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @default(now()) @map("updated_at")
+
   businessId String   @map("business_id")
   Business   Business @relation(fields: [businessId], references: [id])
 
-  @@map("campaigns")
+  @@map("templates")
 }
