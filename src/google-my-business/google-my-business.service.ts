@@ -76,9 +76,9 @@ export class GoogleMyBusinessService {
         'monitor-all-businesses',
         {},
         {
-          repeat: { cron: '0 * * * *' }, // Every hour
-          removeOnComplete: 10,
-          removeOnFail: 5,
+          repeat: { cron: '6 * * * *' }, // Every hour
+          removeOnComplete: 2,
+          removeOnFail: 2,
         }
       );
       
@@ -97,9 +97,9 @@ export class GoogleMyBusinessService {
         'check-reviews',
         { businessId, organizationId },
         {
-          delay: 5000, // Start checking after 5 seconds
-          removeOnComplete: 5,
-          removeOnFail: 3,
+          delay: 30000, // Start checking after 5 seconds
+          removeOnComplete: 2,
+          removeOnFail: 2,
         }
       );
       

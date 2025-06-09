@@ -14,13 +14,13 @@ import { ConfigModule } from '@nestjs/config';
     BullModule.registerQueue({
       name: 'sms',
       defaultJobOptions: {
-        attempts: 3,
+        attempts: 2,
         backoff: {
           type: 'exponential',
           delay: 5000,
         },
-        removeOnComplete: 2,    // Keep only 2 completed jobs (minimal but not 0)
-        removeOnFail: 2,       // Keep only 2 failed jobs (minimal but not 0)
+        removeOnComplete: 1,    // Keep only 2 completed jobs (minimal but not 0)
+        removeOnFail: 1,       // Keep only 2 failed jobs (minimal but not 0)
       },
       // Conservative settings to reduce Redis polling
       settings: {
