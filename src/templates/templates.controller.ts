@@ -68,7 +68,6 @@ export class TemplatesController {
   }
 
   @Patch(':id')
-  @UsePipes(new ValidationPipe({ whitelist: true }))
   update(
     @Param('id', ParseUUIDPipe) id: string, 
     @Body() updateTemplateDto: UpdateTemplateDto,
