@@ -108,20 +108,7 @@ export class InvitesService {
     }
 
     // Enqueue SMS job with optional delay
-    const job = await this.smsQueue.add(
-      'send',
-      smsJobData,
-      {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 5000, // 5 seconds
-        },
-        delay: jobDelay, // Schedule for the specified time
-        removeOnComplete: 1,  // Override to keep minimal completed jobs
-        removeOnFail: 1,     // Override to keep minimal failed jobs
-      },
-    );
+    const job = await this.smsQueue.add('send', smsJobData);
 
     this.logger.log(
       `Enqueued SMS job with ID: ${job.id}${jobDelay > 0 ? ` with ${Math.round(jobDelay / 1000 / 60)} minute delay` : ''}`,
@@ -225,18 +212,6 @@ export class InvitesService {
         inviteId: invite.id,
         message,
       } as SmsJobData,
-      opts: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 5000, // 5 seconds
-        },
-        removeOnComplete: 1,  // Override to keep minimal completed jobs
-        removeOnFail: 1,     // Override to keep minimal failed jobs
-      },
-      // If scheduled, use baseDelay + staggered intervals
-      // If not scheduled, just use staggered intervals
-      delay: baseDelay + (index * 2000), // 2s interval between each SMS
     }));
 
     // Enqueue all SMS jobs in batch
