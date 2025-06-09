@@ -44,4 +44,8 @@ export class CreateBatchInviteDto {
   @IsOptional()
   @IsDateString()
   sendAt?: string;
+
+  @IsOptional()
+  @IsString()
+  templateId?: string;
 }

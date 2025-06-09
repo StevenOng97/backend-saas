@@ -34,6 +34,7 @@ export class SmsService {
     inviteId: string,
     businessId: string,
     customerId: string,
+    templateId?: string,
   ): Promise<{ sid: string; success: boolean; message?: string }> {
     try {
       // Get the business, customer, and invite details
@@ -54,16 +55,23 @@ export class SmsService {
         };
       }
 
-      const defaultTemplate = await this.prisma.template.findFirst({
-        where: {
-          businessId,
-          type: TemplateType.SMS,
-          isDefault: true,
-        },
-      });
+      let defaultTemplate;
+      if (!templateId) {
+        defaultTemplate = await this.prisma.template.findFirst({
+          where: {
+            businessId,
+            type: TemplateType.SMS,
+            isDefault: true,
+          },
+        });
+      } else {
+        defaultTemplate = await this.prisma.template.findUnique({
+          where: { id: templateId },
+        });
+      }
 
       // Update the invite with the default template
-      if (defaultTemplate) {
+      if (!templateId && defaultTemplate) {
         await this.prisma.invite.update({
           where: { id: inviteId },
           data: {

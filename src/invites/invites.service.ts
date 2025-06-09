@@ -128,7 +128,7 @@ export class InvitesService {
     organizationId: string,
     createBatchInviteDto: CreateBatchInviteDto,
   ) {
-    const { customerIds, message, sendAt } = createBatchInviteDto;
+    const { customerIds, message, sendAt, templateId } = createBatchInviteDto;
 
     // Verify all customers exist and belong to business
     const customers = await this.prisma.customer.findMany({
@@ -185,6 +185,7 @@ export class InvitesService {
       expiresAt,
       sendAt: scheduledSendTime,
       status: InviteStatus.PENDING,
+      templateId,
     }));
 
     // Create all invites and return them in a single operation
@@ -211,6 +212,7 @@ export class InvitesService {
         customerId: invite.customerId,
         inviteId: invite.id,
         message,
+        templateId,
       } as SmsJobData,
     }));
 
