@@ -47,8 +47,8 @@ export class TemplatesController {
   }
 
   @Get('default-templates')
-  async findDefaultTemplates(@CurrentUser() user: User) {
-    return this.templatesService.findDefaultTemplates(user);
+  async findDefaultTemplates() {
+    return this.templatesService.findPrebuiltTemplates();
   }
 
   @Get(':id')

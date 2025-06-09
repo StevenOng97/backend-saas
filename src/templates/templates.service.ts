@@ -234,4 +234,15 @@ export class TemplatesService {
       },
     });
   }
-} 
+
+  async findPrebuiltTemplates() {
+    return this.prisma.template.findMany({
+      where: {
+        isPrebuilt: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+}
