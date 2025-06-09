@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { TwilioClientService } from '../twilio/twilio-client.service';
-import { CustomerStatus, SmsStatus } from '@prisma/client';
+import { CustomerStatus, SmsStatus, TemplateType } from '@prisma/client';
 import { TWILIO_ERROR_CODES } from '../../constants';
 @Injectable()
 export class SmsService {
@@ -17,10 +17,14 @@ export class SmsService {
     private configService: ConfigService,
     private twilioClient: TwilioClientService,
   ) {
-    this.sharedTwilioNumber = this.configService.get<string>('SHARED_TWILIO_NUMBER') || '';
-    this.sharedServiceSid = this.configService.get<string>('SHARED_SERVICE_SID') || '';
-    this.sharedA2pBrandId = this.configService.get<string>('SHARED_A2P_BRAND_ID') || '';
-    this.sharedA2pCampaignId = this.configService.get<string>('SHARED_A2P_CAMPAIGN_ID') || '';
+    this.sharedTwilioNumber =
+      this.configService.get<string>('SHARED_TWILIO_NUMBER') || '';
+    this.sharedServiceSid =
+      this.configService.get<string>('SHARED_SERVICE_SID') || '';
+    this.sharedA2pBrandId =
+      this.configService.get<string>('SHARED_A2P_BRAND_ID') || '';
+    this.sharedA2pCampaignId =
+      this.configService.get<string>('SHARED_A2P_CAMPAIGN_ID') || '';
   }
 
   /**
@@ -36,18 +40,36 @@ export class SmsService {
       const [business, customer, invite] = await Promise.all([
         this.prisma.business.findUnique({ where: { id: businessId } }),
         this.prisma.customer.findUnique({ where: { id: customerId } }),
-        this.prisma.invite.findUnique({ 
+        this.prisma.invite.findUnique({
           where: { id: inviteId },
-          select: { id: true, shortId: true }
+          select: { id: true, shortId: true },
         }),
       ]);
 
       if (!business || !customer || !invite) {
-        return { 
-          sid: '', 
+        return {
+          sid: '',
           success: false,
-          message: 'Business, customer, or invite not found'
+          message: 'Business, customer, or invite not found',
         };
+      }
+
+      const defaultTemplate = await this.prisma.template.findFirst({
+        where: {
+          businessId,
+          type: TemplateType.SMS,
+          isDefault: true,
+        },
+      });
+
+      // Update the invite with the default template
+      if (defaultTemplate) {
+        await this.prisma.invite.update({
+          where: { id: inviteId },
+          data: {
+            templateId: defaultTemplate.id,
+          },
+        });
       }
 
       // Check if customer opted out
@@ -64,11 +86,11 @@ export class SmsService {
             message: 'Customer opted out',
           },
         });
-        
-        return { 
-          sid, 
+
+        return {
+          sid,
           success: false,
-          message: 'Customer opted out'
+          message: 'Customer opted out',
         };
       }
 
@@ -77,33 +99,41 @@ export class SmsService {
         return {
           sid: '',
           success: false,
-          message: 'Customer phone number not found'
+          message: 'Customer phone number not found',
         };
       }
 
       // Use shortId in the URL if available, otherwise fall back to full inviteId
       const inviteUrl = `${this.configService.get<string>('FRONTEND_URL')}/rate/${invite.shortId || invite.id}`;
 
-
       this.logger.log(`Invite URL: ${inviteUrl}`);
-      this.logger.log(`Frontend URL: ${this.configService.get<string>('FRONTEND_URL')}`);
+      this.logger.log(
+        `Frontend URL: ${this.configService.get<string>('FRONTEND_URL')}`,
+      );
 
       let fromNumber: string;
       let messagingServiceSid: string;
-      let smsBody: string = "";
+      let smsBody: string = '';
+
+      let defaultTemplateBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${inviteUrl} Reply STOP to opt out.`;
+      if (defaultTemplate && defaultTemplate.content) {
+        defaultTemplateBody = defaultTemplate.content
+          .replace(/{customer_name}/g, customer.name || 'there')
+          .replace(/{review_link}/g, inviteUrl);
+      }
 
       // Determine which sender configuration to use
       if (business.senderType === 'shared') {
         fromNumber = this.sharedTwilioNumber;
         messagingServiceSid = this.sharedServiceSid;
-        
+
         // Locked template with business name merge field for shared senders
-        smsBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${inviteUrl} Reply STOP to opt out.`;
+        smsBody = defaultTemplateBody;
       } else {
         // For dedicated senders
         fromNumber = business.senderPhone || '';
         messagingServiceSid = business.a2pCampaignId || '';
-        
+
         // Custom template for dedicated senders
         // if (business.smsTemplate) {
         //   smsBody = this.renderCustomTemplate(
@@ -125,16 +155,16 @@ export class SmsService {
         smsBody,
         inviteId,
         fromNumber,
-        messagingServiceSid
+        messagingServiceSid,
       );
 
       return result;
     } catch (error) {
       this.logger.error(`Error sending review invite: ${error.message}`);
-      return { 
-        sid: '', 
+      return {
+        sid: '',
         success: false,
-        message: `Error: ${error.message}`
+        message: `Error: ${error.message}`,
       };
     }
   }
@@ -154,7 +184,9 @@ export class SmsService {
     try {
       // Check if Twilio is configured
       if (!this.twilioClient.isConfigured()) {
-        this.logger.warn('Twilio not configured, falling back to simulation mode');
+        this.logger.warn(
+          'Twilio not configured, falling back to simulation mode',
+        );
         return this.simulateSms(businessId, customerId, message, inviteId);
       }
 
@@ -166,7 +198,7 @@ export class SmsService {
       }
 
       this.logger.log(
-        `Sending SMS to ${formattedPhone} from ${fromNumber || messagingServiceSid || 'default'}`
+        `Sending SMS to ${formattedPhone} from ${fromNumber || messagingServiceSid || 'default'}`,
       );
 
       // Send via Twilio
@@ -191,9 +223,9 @@ export class SmsService {
         });
 
         this.logger.log(`SMS sent successfully with SID: ${result.sid}`);
-        return { 
-          sid: result.sid, 
-          success: true 
+        return {
+          sid: result.sid,
+          success: true,
         };
       } else {
         // Log failed attempt
@@ -209,15 +241,15 @@ export class SmsService {
         });
 
         this.logger.error(`Failed to send SMS: ${result.error}`);
-        return { 
-          sid: result.sid || '', 
+        return {
+          sid: result.sid || '',
           success: false,
-          message: result.error 
+          message: result.error,
         };
       }
     } catch (error) {
       this.logger.error(`Error sending SMS: ${error.message}`);
-      
+
       // Log failed attempt
       await this.prisma.smsLog.create({
         data: {
@@ -230,10 +262,10 @@ export class SmsService {
         },
       });
 
-      return { 
-        sid: '', 
+      return {
+        sid: '',
         success: false,
-        message: error.message 
+        message: error.message,
       };
     }
   }
@@ -249,10 +281,10 @@ export class SmsService {
   ): Promise<{ sid: string; success: boolean }> {
     // Simulate success/failure (70% success rate)
     const isSuccess = Math.random() < 0.7;
-    
+
     // Generate a fake Twilio SID
     const sid = `SM_SIM_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-    
+
     this.logger.log(
       `SIMULATION: Attempting to send SMS to customer ${customerId}: ${isSuccess ? 'SUCCESS' : 'FAILURE'}`,
     );
@@ -274,14 +306,20 @@ export class SmsService {
       return { sid, success: true };
     }
 
-    this.logger.error(`SIMULATION: Failed to send SMS to customer ${customerId}`);
+    this.logger.error(
+      `SIMULATION: Failed to send SMS to customer ${customerId}`,
+    );
     return { sid, success: false };
   }
 
   /**
    * Update SMS status based on webhook data
    */
-  async updateSmsStatus(sid: string, status: SmsStatus, errorCode?: string): Promise<boolean> {
+  async updateSmsStatus(
+    sid: string,
+    status: SmsStatus,
+    errorCode?: string,
+  ): Promise<boolean> {
     try {
       const smsLog = await this.prisma.smsLog.findFirst({
         where: { twilioSid: sid },
@@ -291,9 +329,9 @@ export class SmsService {
         this.logger.error(`SMS log with SID ${sid} not found`);
         return false;
       }
-      
+
       const updateData: any = { status, updatedAt: new Date() };
-      
+
       if (errorCode) {
         const errorMessage = TWILIO_ERROR_CODES[errorCode];
         updateData.message = errorMessage || 'Unknown error occurred';
@@ -313,7 +351,6 @@ export class SmsService {
           data: { status: CustomerStatus.REQUEST_SENT },
         });
       }
-
 
       this.logger.log(`Updated SMS status for SID ${sid} to ${status}`);
       return true;
@@ -343,10 +380,14 @@ export class SmsService {
         data: { optedOut: true },
       });
 
-      this.logger.log(`Marked ${customers.length} customer(s) with phone ${phoneNumber} as opted out`);
+      this.logger.log(
+        `Marked ${customers.length} customer(s) with phone ${phoneNumber} as opted out`,
+      );
       return true;
     } catch (error) {
-      this.logger.error(`Error marking customer as opted out: ${error.message}`);
+      this.logger.error(
+        `Error marking customer as opted out: ${error.message}`,
+      );
       return false;
     }
   }
@@ -371,7 +412,9 @@ export class SmsService {
         data: { optedOut: false },
       });
 
-      this.logger.log(`Marked ${customers.length} customer(s) with phone ${phoneNumber} as opted in`);
+      this.logger.log(
+        `Marked ${customers.length} customer(s) with phone ${phoneNumber} as opted in`,
+      );
       return true;
     } catch (error) {
       this.logger.error(`Error marking customer as opted in: ${error.message}`);
@@ -386,7 +429,7 @@ export class SmsService {
     template: string,
     customer: { name?: string | null },
     business: { name: string },
-    reviewLink: string
+    reviewLink: string,
   ): string {
     // Replace template variables with actual values
     return template
@@ -394,4 +437,4 @@ export class SmsService {
       .replace(/{business_name}/g, business.name)
       .replace(/{review_link}/g, reviewLink);
   }
-} 
+}

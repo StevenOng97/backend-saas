@@ -160,12 +160,13 @@ model Invite {
   organization Organization @relation(fields: [organizationId], references: [id])
   customer     Customer?    @relation(fields: [customerId], references: [id])
   smsLogs      SmsLog[]
-
-  openedAt   DateTime? @map("opened_at")
-  deviceInfo String?   @map("device_info")
-  ipAddress  String?   @map("ip_address")
-  sendAt     DateTime? @map("send_at")
-  rating     Rating?
+  template     Template?    @relation(fields: [templateId], references: [id])
+  templateId   String?      @map("template_id")
+  openedAt     DateTime?    @map("opened_at")
+  deviceInfo   String?      @map("device_info")
+  ipAddress    String?      @map("ip_address")
+  sendAt       DateTime?    @map("send_at")
+  rating       Rating?
 
   @@map("invites")
 }
@@ -227,7 +228,7 @@ model SmsLog {
   business Business @relation(fields: [businessId], references: [id])
   customer Customer @relation(fields: [customerId], references: [id])
   invite   Invite?  @relation(fields: [inviteId], references: [id])
-  
+
   @@map("sms_logs")
 }
 
@@ -287,6 +288,7 @@ model Template {
 
   businessId String   @map("business_id")
   Business   Business @relation(fields: [businessId], references: [id])
+  Invite     Invite[]
 
   @@map("templates")
 }
