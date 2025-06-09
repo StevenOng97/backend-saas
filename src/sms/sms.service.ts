@@ -345,7 +345,7 @@ export class SmsService {
         data: updateData,
       });
 
-      if (status === SmsStatus.DELIVERED) {
+      if (updateData.status === SmsStatus.DELIVERED) {
         await this.prisma.customer.update({
           where: { id: smsLog.customerId },
           data: { status: CustomerStatus.REQUEST_SENT },
