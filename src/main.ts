@@ -4,11 +4,15 @@ import { AppModule } from './app.module';
 import * as cookieParser from 'cookie-parser';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { Logger } from '@nestjs/common';
+import { raw } from 'express';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   
   const app = await NestFactory.create(AppModule);
+  
+  // Configure raw body parsing for Stripe webhooks BEFORE other middleware
+  app.use('/stripe/webhook', raw({ type: 'application/json' }));
   
   // Enable CORS with credentials
   app.enableCors({

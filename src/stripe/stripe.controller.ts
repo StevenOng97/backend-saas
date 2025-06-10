@@ -260,16 +260,15 @@ export class StripeController {
    */
   @Post('webhook')
   async handleWebhook(
-    @Req() req: RawBodyRequest<Request>,
+    @Req() req: Request,
     @Headers('stripe-signature') signature: string,
     @Res() res: Response,
   ) {
     try {
       this.logger.log('🔄 Webhook received');
-      this.logger.log('Headers:', req.headers);
-      this.logger.log('Has rawBody:', !!req.rawBody);
+      this.logger.log('Has signature:', !!signature);
       this.logger.log('Body type:', typeof req.body);
-      this.logger.log('Signature present:', !!signature);
+      this.logger.log('Body is Buffer:', Buffer.isBuffer(req.body));
 
       // ALWAYS respond to Stripe first to prevent timeout
       if (!signature) {
@@ -289,22 +288,11 @@ export class StripeController {
         });
       }
 
-      if (!req.rawBody) {
-        this.logger.log('❌ Missing raw body');
-        // For debugging, let's try with the parsed body
-        this.logger.log('Attempting with parsed body...');
-        try {
-          const bodyString = JSON.stringify(req.body);
-          const event = this.stripeService.constructWebhookEvent(
-            Buffer.from(bodyString),
-            signature,
-            webhookSecret,
-          );
-          this.logger.log('✅ Event constructed with parsed body');
-        } catch (fallbackError) {
-          this.logger.log('❌ Fallback also failed:', fallbackError.message);
-        }
-
+      // Express raw middleware puts the raw buffer in req.body
+      const rawBody = req.body;
+      if (!rawBody || !Buffer.isBuffer(rawBody)) {
+        this.logger.log('❌ Missing or invalid raw body');
+        this.logger.log('Body:', req.body);
         return res.status(HttpStatus.BAD_REQUEST).json({
           error: 'Missing raw body for webhook signature verification',
         });
@@ -312,7 +300,7 @@ export class StripeController {
 
       this.logger.log('🔐 Constructing webhook event...');
       const event = this.stripeService.constructWebhookEvent(
-        req.rawBody,
+        rawBody,
         signature,
         webhookSecret,
       );
