@@ -26,13 +26,14 @@ import { CurrentUser } from 'src/decorators/current-user.decorator';
 
 @Controller('stripe')
 export class StripeController {
+  private readonly logger = new Logger(StripeController.name);
+
   constructor(
     private readonly stripeService: StripeService,
     private readonly stripeCustomerService: StripeCustomerService,
     private readonly stripeSubscriptionService: StripeSubscriptionService,
     private readonly stripeWebhookService: StripeWebhookService,
     private readonly configService: ConfigService,
-    private readonly logger: Logger,
   ) {}
 
   /**
@@ -65,10 +66,11 @@ export class StripeController {
       };
 
       // Create or retrieve customer
-      const customer = await this.stripeCustomerService.createOrRetrieveCustomer(
-        mockUser as User,
-        organizationId,
-      );
+      const customer =
+        await this.stripeCustomerService.createOrRetrieveCustomer(
+          mockUser as User,
+          organizationId,
+        );
 
       // Create checkout session
       const session = await this.stripeService.createCheckoutSession({
@@ -88,7 +90,9 @@ export class StripeController {
         sessionId: session.id,
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to create checkout session: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to create checkout session: ${error.message}`,
+      );
     }
   }
 
@@ -98,15 +102,15 @@ export class StripeController {
    */
   @Post('create-portal-session')
   @UseGuards(JwtAuthGuard)
-  async createPortalSession(
-    @CurrentUser() user: User,
-  ) {
+  async createPortalSession(@CurrentUser() user: User) {
     try {
       const organizationId = user.organizationId;
       const userEmail = user.email;
 
       if (!organizationId || !userEmail) {
-        throw new BadRequestException('Organization ID and user email are required');
+        throw new BadRequestException(
+          'Organization ID and user email are required',
+        );
       }
 
       // Create a mock user object - replace with actual user retrieval
@@ -117,10 +121,11 @@ export class StripeController {
       };
 
       // Get or create customer
-      const customer = await this.stripeCustomerService.createOrRetrieveCustomer(
-        mockUser as User,
-        organizationId,
-      );
+      const customer =
+        await this.stripeCustomerService.createOrRetrieveCustomer(
+          mockUser as User,
+          organizationId,
+        );
 
       // Create portal session
       const session = await this.stripeService.createPortalSession({
@@ -132,7 +137,9 @@ export class StripeController {
         url: session.url,
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to create portal session: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to create portal session: ${error.message}`,
+      );
     }
   }
 
@@ -144,9 +151,10 @@ export class StripeController {
   @UseGuards(JwtAuthGuard)
   async getSubscription(@CurrentUser() user: User) {
     try {
-      const subscription = await this.stripeSubscriptionService.getSubscriptionByOrganization(
-        user.organizationId,
-      );
+      const subscription =
+        await this.stripeSubscriptionService.getSubscriptionByOrganization(
+          user.organizationId,
+        );
 
       if (!subscription) {
         return {
@@ -168,7 +176,9 @@ export class StripeController {
         },
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to get subscription: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to get subscription: ${error.message}`,
+      );
     }
   }
 
@@ -184,18 +194,22 @@ export class StripeController {
   ) {
     try {
       // Verify subscription belongs to user's organization
-      const subscription = await this.stripeSubscriptionService.retrieveSubscription(subscriptionId);
+      const subscription =
+        await this.stripeSubscriptionService.retrieveSubscription(
+          subscriptionId,
+        );
       if (subscription.metadata?.organizationId !== user.organizationId) {
         throw new BadRequestException('Subscription not found');
       }
 
-      const cancelledSubscription = await this.stripeSubscriptionService.cancelSubscription(
-        subscriptionId,
-        {
-          immediately: body.immediately,
-          cancelAtPeriodEnd: !body.immediately,
-        },
-      );
+      const cancelledSubscription =
+        await this.stripeSubscriptionService.cancelSubscription(
+          subscriptionId,
+          {
+            immediately: body.immediately,
+            cancelAtPeriodEnd: !body.immediately,
+          },
+        );
 
       return {
         success: true,
@@ -206,7 +220,9 @@ export class StripeController {
         },
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to cancel subscription: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to cancel subscription: ${error.message}`,
+      );
     }
   }
 
@@ -219,7 +235,7 @@ export class StripeController {
     if (!plans) {
       return { plans: [] };
     }
-    
+
     return {
       plans: Object.entries(plans).map(([key, plan]: [string, any]) => ({
         id: key,
@@ -231,7 +247,10 @@ export class StripeController {
         description: plan.description,
         isFree: plan.price === 0,
         hasFreeTrial: plan.price > 0,
-        trialDays: plan.price > 0 ? this.configService.get('stripe.defaultTrialDays') || 7 : 0,
+        trialDays:
+          plan.price > 0
+            ? this.configService.get('stripe.defaultTrialDays') || 7
+            : 0,
       })),
     };
   }
@@ -251,23 +270,25 @@ export class StripeController {
       this.logger.log('Has rawBody:', !!req.rawBody);
       this.logger.log('Body type:', typeof req.body);
       this.logger.log('Signature present:', !!signature);
-  
+
       // ALWAYS respond to Stripe first to prevent timeout
       if (!signature) {
         this.logger.log('❌ Missing signature');
-        return res.status(HttpStatus.BAD_REQUEST).json({ 
-          error: 'Missing stripe-signature header' 
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          error: 'Missing stripe-signature header',
         });
       }
-  
-      const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
+
+      const webhookSecret = this.configService.get<string>(
+        'STRIPE_WEBHOOK_SECRET',
+      );
       if (!webhookSecret) {
         this.logger.log('❌ Missing webhook secret');
-        return res.status(HttpStatus.BAD_REQUEST).json({ 
-          error: 'Webhook secret not configured' 
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          error: 'Webhook secret not configured',
         });
       }
-  
+
       if (!req.rawBody) {
         this.logger.log('❌ Missing raw body');
         // For debugging, let's try with the parsed body
@@ -283,40 +304,39 @@ export class StripeController {
         } catch (fallbackError) {
           this.logger.log('❌ Fallback also failed:', fallbackError.message);
         }
-        
-        return res.status(HttpStatus.BAD_REQUEST).json({ 
-          error: 'Missing raw body for webhook signature verification' 
+
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          error: 'Missing raw body for webhook signature verification',
         });
       }
-  
+
       this.logger.log('🔐 Constructing webhook event...');
       const event = this.stripeService.constructWebhookEvent(
         req.rawBody,
         signature,
         webhookSecret,
       );
-  
+
       this.logger.log('📝 Event type:', event.type);
       this.logger.log('🔄 Processing webhook event...');
-      
+
       // Process the webhook event
       await this.stripeWebhookService.handleWebhookEvent(event);
-  
+
       this.logger.log('✅ Webhook processed successfully');
       return res.status(HttpStatus.OK).json({ received: true });
-  
     } catch (error) {
       this.logger.error('❌ Webhook error:', error.message);
       this.logger.error('Error type:', error.constructor.name);
-      
+
       if (error.type === 'StripeSignatureVerificationError') {
         this.logger.error('🔐 Signature verification failed');
       }
-      
+
       // ALWAYS return a response to prevent timeout
-      return res.status(HttpStatus.BAD_REQUEST).json({ 
+      return res.status(HttpStatus.BAD_REQUEST).json({
         error: error.message,
-        type: error.constructor.name 
+        type: error.constructor.name,
       });
     }
   }
@@ -331,8 +351,9 @@ export class StripeController {
     @CurrentUser() user: User,
   ) {
     try {
-      const session = await this.stripeService.retrieveCheckoutSession(sessionId);
-      
+      const session =
+        await this.stripeService.retrieveCheckoutSession(sessionId);
+
       // Verify session belongs to user's organization
       if (session.metadata?.organizationId !== user.organizationId) {
         throw new BadRequestException('Session not found');
@@ -347,7 +368,9 @@ export class StripeController {
         },
       };
     } catch (error) {
-      throw new BadRequestException(`Failed to verify session: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to verify session: ${error.message}`,
+      );
     }
   }
-} 
+}
