@@ -11,6 +11,7 @@ import {
   BadRequestException,
   HttpStatus,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -31,6 +32,7 @@ export class StripeController {
     private readonly stripeSubscriptionService: StripeSubscriptionService,
     private readonly stripeWebhookService: StripeWebhookService,
     private readonly configService: ConfigService,
+    private readonly logger: Logger,
   ) {}
 
   /**
@@ -244,15 +246,15 @@ export class StripeController {
     @Res() res: Response,
   ) {
     try {
-      console.log('🔄 Webhook received');
-      console.log('Headers:', req.headers);
-      console.log('Has rawBody:', !!req.rawBody);
-      console.log('Body type:', typeof req.body);
-      console.log('Signature present:', !!signature);
+      this.logger.log('🔄 Webhook received');
+      this.logger.log('Headers:', req.headers);
+      this.logger.log('Has rawBody:', !!req.rawBody);
+      this.logger.log('Body type:', typeof req.body);
+      this.logger.log('Signature present:', !!signature);
   
       // ALWAYS respond to Stripe first to prevent timeout
       if (!signature) {
-        console.log('❌ Missing signature');
+        this.logger.log('❌ Missing signature');
         return res.status(HttpStatus.BAD_REQUEST).json({ 
           error: 'Missing stripe-signature header' 
         });
@@ -260,16 +262,16 @@ export class StripeController {
   
       const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
       if (!webhookSecret) {
-        console.log('❌ Missing webhook secret');
+        this.logger.log('❌ Missing webhook secret');
         return res.status(HttpStatus.BAD_REQUEST).json({ 
           error: 'Webhook secret not configured' 
         });
       }
   
       if (!req.rawBody) {
-        console.log('❌ Missing raw body');
+        this.logger.log('❌ Missing raw body');
         // For debugging, let's try with the parsed body
-        console.log('Attempting with parsed body...');
+        this.logger.log('Attempting with parsed body...');
         try {
           const bodyString = JSON.stringify(req.body);
           const event = this.stripeService.constructWebhookEvent(
@@ -277,9 +279,9 @@ export class StripeController {
             signature,
             webhookSecret,
           );
-          console.log('✅ Event constructed with parsed body');
+          this.logger.log('✅ Event constructed with parsed body');
         } catch (fallbackError) {
-          console.log('❌ Fallback also failed:', fallbackError.message);
+          this.logger.log('❌ Fallback also failed:', fallbackError.message);
         }
         
         return res.status(HttpStatus.BAD_REQUEST).json({ 
@@ -287,28 +289,28 @@ export class StripeController {
         });
       }
   
-      console.log('🔐 Constructing webhook event...');
+      this.logger.log('🔐 Constructing webhook event...');
       const event = this.stripeService.constructWebhookEvent(
         req.rawBody,
         signature,
         webhookSecret,
       );
   
-      console.log('📝 Event type:', event.type);
-      console.log('🔄 Processing webhook event...');
+      this.logger.log('📝 Event type:', event.type);
+      this.logger.log('🔄 Processing webhook event...');
       
       // Process the webhook event
       await this.stripeWebhookService.handleWebhookEvent(event);
   
-      console.log('✅ Webhook processed successfully');
+      this.logger.log('✅ Webhook processed successfully');
       return res.status(HttpStatus.OK).json({ received: true });
   
     } catch (error) {
-      console.error('❌ Webhook error:', error.message);
-      console.error('Error type:', error.constructor.name);
+      this.logger.error('❌ Webhook error:', error.message);
+      this.logger.error('Error type:', error.constructor.name);
       
       if (error.type === 'StripeSignatureVerificationError') {
-        console.error('🔐 Signature verification failed');
+        this.logger.error('🔐 Signature verification failed');
       }
       
       // ALWAYS return a response to prevent timeout
