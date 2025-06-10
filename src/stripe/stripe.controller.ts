@@ -244,35 +244,78 @@ export class StripeController {
     @Res() res: Response,
   ) {
     try {
+      console.log('🔄 Webhook received');
+      console.log('Headers:', req.headers);
+      console.log('Has rawBody:', !!req.rawBody);
+      console.log('Body type:', typeof req.body);
+      console.log('Signature present:', !!signature);
+  
+      // ALWAYS respond to Stripe first to prevent timeout
       if (!signature) {
-        throw new BadRequestException('Missing stripe-signature header');
+        console.log('❌ Missing signature');
+        return res.status(HttpStatus.BAD_REQUEST).json({ 
+          error: 'Missing stripe-signature header' 
+        });
       }
-
+  
       const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
       if (!webhookSecret) {
-        throw new BadRequestException('Webhook secret not configured');
+        console.log('❌ Missing webhook secret');
+        return res.status(HttpStatus.BAD_REQUEST).json({ 
+          error: 'Webhook secret not configured' 
+        });
       }
-
-      // Ensure we have the raw body
+  
       if (!req.rawBody) {
-        throw new BadRequestException('Missing raw body for webhook signature verification');
+        console.log('❌ Missing raw body');
+        // For debugging, let's try with the parsed body
+        console.log('Attempting with parsed body...');
+        try {
+          const bodyString = JSON.stringify(req.body);
+          const event = this.stripeService.constructWebhookEvent(
+            Buffer.from(bodyString),
+            signature,
+            webhookSecret,
+          );
+          console.log('✅ Event constructed with parsed body');
+        } catch (fallbackError) {
+          console.log('❌ Fallback also failed:', fallbackError.message);
+        }
+        
+        return res.status(HttpStatus.BAD_REQUEST).json({ 
+          error: 'Missing raw body for webhook signature verification' 
+        });
       }
-
-      // Construct the event from the raw body
+  
+      console.log('🔐 Constructing webhook event...');
       const event = this.stripeService.constructWebhookEvent(
         req.rawBody,
         signature,
         webhookSecret,
       );
-
+  
+      console.log('📝 Event type:', event.type);
+      console.log('🔄 Processing webhook event...');
+      
       // Process the webhook event
       await this.stripeWebhookService.handleWebhookEvent(event);
-
-      // Return a response to Stripe
-      res.status(HttpStatus.OK).json({ received: true });
+  
+      console.log('✅ Webhook processed successfully');
+      return res.status(HttpStatus.OK).json({ received: true });
+  
     } catch (error) {
-      console.error('Webhook error:', error.message);
-      res.status(HttpStatus.BAD_REQUEST).json({ error: error.message });
+      console.error('❌ Webhook error:', error.message);
+      console.error('Error type:', error.constructor.name);
+      
+      if (error.type === 'StripeSignatureVerificationError') {
+        console.error('🔐 Signature verification failed');
+      }
+      
+      // ALWAYS return a response to prevent timeout
+      return res.status(HttpStatus.BAD_REQUEST).json({ 
+        error: error.message,
+        type: error.constructor.name 
+      });
     }
   }
 
