@@ -22,6 +22,7 @@ import { StripeWebhookService } from './stripe-webhook.service';
 import { CreateCheckoutSessionDto, CancelSubscriptionDto } from './dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
+import { buffer } from "micro";
 
 @Controller('stripe')
 export class StripeController {
@@ -253,14 +254,12 @@ export class StripeController {
         throw new BadRequestException('Webhook secret not configured');
       }
 
-      // Ensure we have the raw body
-      if (!req.rawBody) {
-        throw new BadRequestException('Missing raw body for webhook signature verification');
-      }
+      const sig = req.headers["stripe-signature"] as string;
+      const buf = await buffer(req);
 
       // Construct the event from the raw body
       const event = this.stripeService.constructWebhookEvent(
-        req.rawBody,
+        buf,
         signature,
         webhookSecret,
       );
