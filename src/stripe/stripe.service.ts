@@ -60,9 +60,9 @@ export class StripeService {
         metadata: params.metadata || {},
         allow_promotion_codes: params.allowPromotionCodes || true,
         billing_address_collection: 'required',
-        automatic_tax: {
-          enabled: false, // TODO: Enable this when we have a tax service
-        },
+        // automatic_tax: {
+        //   enabled: true,
+        // },
       };
 
       // Add trial only for subscription mode and if trial days > 0
