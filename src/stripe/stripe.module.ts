@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { StripeService } from './stripe.service'
 import { StripeCustomerService } from './stripe-customer.service'
@@ -8,6 +8,7 @@ import { StripeController } from './stripe.controller'
 import { PrismaModule } from '../prisma/prisma.module';
 import stripeConfig from '../config/stripe.config';
 import Stripe from 'stripe';
+import { RawBodyMiddleware } from 'src/middleware/raw-body.middleware';
 
 @Module({
   imports: [
@@ -46,4 +47,9 @@ import Stripe from 'stripe';
     'STRIPE_CLIENT',
   ],
 })
-export class StripeModule {} 
+
+export class StripeModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RawBodyMiddleware).forRoutes('*');
+  }
+}
