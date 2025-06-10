@@ -72,8 +72,8 @@ export class StripeController {
       const session = await this.stripeService.createCheckoutSession({
         customerId: customer.id,
         priceId: priceId,
-        successUrl: `${this.configService.get('app.frontendUrl') || 'http://localhost:3000'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${this.configService.get('app.frontendUrl') || 'http://localhost:3000'}/subscription/cancel`,
+        successUrl: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/subscription/cancel`,
         metadata: {
           userId: mockUser.id!,
           organizationId: organizationId,
@@ -123,7 +123,7 @@ export class StripeController {
       // Create portal session
       const session = await this.stripeService.createPortalSession({
         customerId: customer.id,
-        returnUrl: `${this.configService.get('app.frontendUrl') || 'http://localhost:3000'}/subscription`,
+        returnUrl: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/subscription`,
       });
 
       return {
@@ -248,7 +248,7 @@ export class StripeController {
         throw new BadRequestException('Missing stripe-signature header');
       }
 
-      const webhookSecret = this.configService.get<string>('stripe.webhookEndpointSecret');
+      const webhookSecret = this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
       if (!webhookSecret) {
         throw new BadRequestException('Webhook secret not configured');
       }
