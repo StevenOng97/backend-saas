@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TwilioIsvService } from '../twilio/twilio-isv.service';
 // import { TwilioQueueService } from '../twilio/twilio-queue.service';
 import { SubscriptionPlan } from '@prisma/client';
+import { StripeSubscriptionService } from '../stripe/stripe-subscription.service';
 
 @Injectable()
 export class UpgradeService {
@@ -11,6 +12,7 @@ export class UpgradeService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly twilioIsvService: TwilioIsvService,
+    private readonly stripeSubscriptionService: StripeSubscriptionService,
     // private readonly twilioQueueService: TwilioQueueService,
   ) {}
   

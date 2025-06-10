@@ -42,6 +42,18 @@ This is a NestJS backend implementation for the mini-project requirements. It im
 2. Navigate to API Keys and create a new API key
 3. Copy the API key and add it to your environment variables
 
+### Setting Up Stripe for Billing
+
+1. Sign up for a free account at [Stripe](https://stripe.com/)
+2. Get your API keys from the Stripe Dashboard > Developers > API keys
+3. Create the following products and prices in your Stripe Dashboard:
+   - **Starter Plan**: $19/month recurring
+   - **Growth Plan**: $49/month recurring  
+   - **Pro Plan**: $99/month recurring
+4. Copy the price IDs and add them to your environment variables
+5. Set up a webhook endpoint pointing to `your-domain.com/stripe/webhook`
+6. Copy the webhook signing secret and add it to your environment variables
+
 ### Environment Variables
 
 Create a `.env` file in the root directory with the following contents:
@@ -69,6 +81,17 @@ RESEND_API_KEY="your-resend-api-key"
 GOOGLE_CLIENT_ID="your-client-id"
 GOOGLE_CLIENT_SECRET="your-client-secret"
 GOOGLE_CALLBACK_URL="http://localhost:4200/auth/google/callback"
+
+# Stripe Configuration
+STRIPE_SECRET_KEY="sk_test_your_stripe_secret_key"
+STRIPE_PUBLISHABLE_KEY="pk_test_your_stripe_publishable_key"
+STRIPE_WEBHOOK_SECRET="whsec_your_webhook_endpoint_secret"
+STRIPE_CURRENCY="usd"
+
+# Stripe Price IDs (create these in your Stripe Dashboard)
+STRIPE_STARTER_PRICE_ID="price_starter_plan_id"
+STRIPE_GROWTH_PRICE_ID="price_growth_plan_id"
+STRIPE_PRO_PRICE_ID="price_pro_plan_id"
 ```
 
 ## Installation & Setup

@@ -20,6 +20,7 @@ import { WorkersModule } from './workers/workers.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { TemplatesModule } from './templates/templates.module';
 import { GoogleMyBusinessModule } from './google-my-business/google-my-business.module';
+import { StripeModule } from './stripe/stripe.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -88,6 +89,7 @@ import { GoogleMyBusinessModule } from './google-my-business/google-my-business.
     CampaignsModule,
     TemplatesModule,
     GoogleMyBusinessModule,
+    StripeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
