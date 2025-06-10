@@ -61,7 +61,7 @@ export class StripeService {
         allow_promotion_codes: params.allowPromotionCodes || true,
         billing_address_collection: 'required',
         automatic_tax: {
-          enabled: true,
+          enabled: false, // TODO: Enable this when we have a tax service
         },
       };
 
