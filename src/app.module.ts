@@ -15,7 +15,6 @@ import { CustomersModule } from './customers/customers.module';
 import { SmsModule } from './sms/sms.module';
 import { FeedbacksModule } from './feedbacks/feedbacks.module';
 import { TwilioModule } from './twilio/twilio.module';
-import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WorkersModule } from './workers/workers.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { TemplatesModule } from './templates/templates.module';
@@ -84,7 +83,6 @@ import { StripeModule } from './stripe/stripe.module';
     SmsModule,
     FeedbacksModule,
     TwilioModule,
-    SubscriptionsModule,
     WorkersModule,
     CampaignsModule,
     TemplatesModule,

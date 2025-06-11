@@ -3,7 +3,6 @@ import {
   Post,
   Body,
   Headers,
-  RawBodyRequest,
   Req,
   Res,
   Get,
@@ -74,8 +73,6 @@ export class StripeController {
 
       const successUrl = `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/dashboard`;
       const cancelUrl = `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/dashboard`;
-      const testSuccessUrl = `http://localhost:8080/subscription/success?session_id={CHECKOUT_SESSION_ID}`
-      const testCancelUrl = `http://localhost:8080/subscription/cancel`
       // Create checkout session
       const session = await this.stripeService.createCheckoutSession({
         customerId: customer.id,
@@ -96,53 +93,6 @@ export class StripeController {
     } catch (error) {
       throw new BadRequestException(
         `Failed to create checkout session: ${error.message}`,
-      );
-    }
-  }
-
-  /**
-   * Create a customer portal session
-   * Note: Add authentication middleware as needed
-   */
-  @Post('create-portal-session')
-  @UseGuards(JwtAuthGuard)
-  async createPortalSession(@CurrentUser() user: User) {
-    try {
-      const organizationId = user.organizationId;
-      const userEmail = user.email;
-
-      if (!organizationId || !userEmail) {
-        throw new BadRequestException(
-          'Organization ID and user email are required',
-        );
-      }
-
-      // Create a mock user object - replace with actual user retrieval
-      const mockUser: Partial<User> = {
-        id: 'temp-user-id',
-        email: userEmail,
-        organizationId,
-      };
-
-      // Get or create customer
-      const customer =
-        await this.stripeCustomerService.createOrRetrieveCustomer(
-          mockUser as User,
-          organizationId,
-        );
-
-      // Create portal session
-      const session = await this.stripeService.createPortalSession({
-        customerId: customer.id,
-        returnUrl: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/subscription`,
-      });
-
-      return {
-        url: session.url,
-      };
-    } catch (error) {
-      throw new BadRequestException(
-        `Failed to create portal session: ${error.message}`,
       );
     }
   }
@@ -176,7 +126,7 @@ export class StripeController {
           currentPeriodStart: (subscription as any).current_period_start,
           currentPeriodEnd: (subscription as any).current_period_end,
           cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
-          trialEnd: (subscription as any).trial_end 
+          trialEnd: (subscription as any).trial_end
             ? new Date((subscription as any).trial_end * 1000).toISOString()
             : null,
         },
@@ -334,39 +284,6 @@ export class StripeController {
         error: error.message,
         type: error.constructor.name,
       });
-    }
-  }
-
-  /**
-   * Verify checkout session
-   */
-  @Get('verify-session/:sessionId')
-  @UseGuards(JwtAuthGuard)
-  async verifySession(
-    @Param('sessionId') sessionId: string,
-    @CurrentUser() user: User,
-  ) {
-    try {
-      const session =
-        await this.stripeService.retrieveCheckoutSession(sessionId);
-
-      // Verify session belongs to user's organization
-      if (session.metadata?.organizationId !== user.organizationId) {
-        throw new BadRequestException('Session not found');
-      }
-
-      return {
-        session: {
-          id: session.id,
-          status: session.status,
-          paymentStatus: session.payment_status,
-          subscription: session.subscription,
-        },
-      };
-    } catch (error) {
-      throw new BadRequestException(
-        `Failed to verify session: ${error.message}`,
-      );
     }
   }
 }

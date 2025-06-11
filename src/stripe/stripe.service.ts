@@ -42,7 +42,10 @@ export class StripeService {
     try {
       // Default to 7-day trial for all paid plans unless explicitly set to 0
       const defaultTrialDays = this.getConfig('defaultTrialDays') || 7;
-      const trialDays = params.trialPeriodDays !== undefined ? params.trialPeriodDays : defaultTrialDays;
+      const trialDays =
+        params.trialPeriodDays !== undefined
+          ? params.trialPeriodDays
+          : defaultTrialDays;
 
       const sessionParams: Stripe.Checkout.SessionCreateParams = {
         customer: params.customerId,
@@ -75,7 +78,9 @@ export class StripeService {
 
       const session = await this.stripe.checkout.sessions.create(sessionParams);
 
-      this.logger.log(`Created checkout session: ${session.id} with ${trialDays}-day trial`);
+      this.logger.log(
+        `Created checkout session: ${session.id} with ${trialDays}-day trial`,
+      );
       return session;
     } catch (error) {
       this.logger.error(`Failed to create checkout session: ${error.message}`);
@@ -84,36 +89,19 @@ export class StripeService {
   }
 
   /**
-   * Create a Customer Portal Session
-   */
-  async createPortalSession(params: {
-    customerId: string;
-    returnUrl: string;
-  }): Promise<Stripe.BillingPortal.Session> {
-    try {
-      const session = await this.stripe.billingPortal.sessions.create({
-        customer: params.customerId,
-        return_url: params.returnUrl,
-      });
-
-      this.logger.log(`Created portal session for customer: ${params.customerId}`);
-      return session;
-    } catch (error) {
-      this.logger.error(`Failed to create portal session: ${error.message}`);
-      throw error;
-    }
-  }
-
-  /**
    * Retrieve a checkout session
    */
-  async retrieveCheckoutSession(sessionId: string): Promise<Stripe.Checkout.Session> {
+  async retrieveCheckoutSession(
+    sessionId: string,
+  ): Promise<Stripe.Checkout.Session> {
     try {
       return await this.stripe.checkout.sessions.retrieve(sessionId, {
         expand: ['customer', 'subscription'],
       });
     } catch (error) {
-      this.logger.error(`Failed to retrieve checkout session: ${error.message}`);
+      this.logger.error(
+        `Failed to retrieve checkout session: ${error.message}`,
+      );
       throw error;
     }
   }
@@ -127,10 +115,16 @@ export class StripeService {
     endpointSecret: string,
   ): Stripe.Event {
     try {
-      return this.stripe.webhooks.constructEvent(payload, signature, endpointSecret);
+      return this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        endpointSecret,
+      );
     } catch (error) {
-      this.logger.error(`Webhook signature verification failed: ${error.message}`);
+      this.logger.error(
+        `Webhook signature verification failed: ${error.message}`,
+      );
       throw error;
     }
   }
-} 
+}
