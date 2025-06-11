@@ -1,16 +1,13 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
 import { GoogleMyBusinessService } from './google-my-business.service';
 import { GoogleMyBusinessController } from './google-my-business.controller';
 import { GoogleMyBusinessProcessor } from './google-my-business.processor';
 import { PrismaModule } from '../prisma/prisma.module';
-
+import { WorkersModule } from '../workers/workers.module';
 @Module({
   imports: [
     PrismaModule,
-    BullModule.registerQueue({
-      name: 'google-my-business',
-    }),
+    WorkersModule,
   ],
   controllers: [GoogleMyBusinessController],
   providers: [GoogleMyBusinessService, GoogleMyBusinessProcessor],

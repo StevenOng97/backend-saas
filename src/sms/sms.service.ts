@@ -114,11 +114,6 @@ export class SmsService {
       // Use shortId in the URL if available, otherwise fall back to full inviteId
       const inviteUrl = `${this.configService.get<string>('FRONTEND_URL')}/rate/${invite.shortId || invite.id}`;
 
-      this.logger.log(`Invite URL: ${inviteUrl}`);
-      this.logger.log(
-        `Frontend URL: ${this.configService.get<string>('FRONTEND_URL')}`,
-      );
-
       let fromNumber: string;
       let messagingServiceSid: string;
       let smsBody: string = '';
@@ -130,30 +125,9 @@ export class SmsService {
           .replace(/{review_link}/g, inviteUrl);
       }
 
-      // Determine which sender configuration to use
-      if (business.senderType === 'shared') {
-        fromNumber = this.sharedTwilioNumber;
-        messagingServiceSid = this.sharedServiceSid;
-
-        // Locked template with business name merge field for shared senders
-        smsBody = defaultTemplateBody;
-      } else {
-        // For dedicated senders
-        fromNumber = business.senderPhone || '';
-        messagingServiceSid = business.a2pCampaignId || '';
-
-        // Custom template for dedicated senders
-        // if (business.smsTemplate) {
-        //   smsBody = this.renderCustomTemplate(
-        //     business.smsTemplate,
-        //     customer,
-        //     business,
-        //     inviteUrl
-        //   );
-        // } else {
-        //   smsBody = `Hi ${customer.name || 'there'}! How was your experience with ${business.name} today: ${inviteUrl} Reply STOP to opt out.`;
-        // }
-      }
+      fromNumber = this.sharedTwilioNumber;
+      messagingServiceSid = this.sharedServiceSid;
+      smsBody = defaultTemplateBody;
 
       // Send SMS via Twilio
       const result = await this.sendSms(
@@ -190,14 +164,6 @@ export class SmsService {
     messagingServiceSid?: string,
   ): Promise<{ sid: string; success: boolean; message?: string }> {
     try {
-      // Check if Twilio is configured
-      if (!this.twilioClient.isConfigured()) {
-        this.logger.warn(
-          'Twilio not configured, falling back to simulation mode',
-        );
-        return this.simulateSms(businessId, customerId, message, inviteId);
-      }
-
       // Ensure phone number is in E.164 format
       let formattedPhone = phoneNumber;
       if (!formattedPhone.startsWith('+')) {
@@ -276,48 +242,6 @@ export class SmsService {
         message: error.message,
       };
     }
-  }
-
-  /**
-   * Fallback simulation method for when Twilio is not configured
-   */
-  private async simulateSms(
-    businessId: string,
-    customerId: string,
-    message: string,
-    inviteId?: string,
-  ): Promise<{ sid: string; success: boolean }> {
-    // Simulate success/failure (70% success rate)
-    const isSuccess = Math.random() < 0.7;
-
-    // Generate a fake Twilio SID
-    const sid = `SM_SIM_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-
-    this.logger.log(
-      `SIMULATION: Attempting to send SMS to customer ${customerId}: ${isSuccess ? 'SUCCESS' : 'FAILURE'}`,
-    );
-
-    if (isSuccess) {
-      // Create a record in the sms_logs table
-      await this.prisma.smsLog.create({
-        data: {
-          businessId,
-          customerId,
-          inviteId,
-          twilioSid: sid,
-          status: SmsStatus.QUEUED,
-          message,
-        },
-      });
-
-      this.logger.log(`SIMULATION: SMS queued with SID: ${sid}`);
-      return { sid, success: true };
-    }
-
-    this.logger.error(
-      `SIMULATION: Failed to send SMS to customer ${customerId}`,
-    );
-    return { sid, success: false };
   }
 
   /**
@@ -428,21 +352,5 @@ export class SmsService {
       this.logger.error(`Error marking customer as opted in: ${error.message}`);
       return false;
     }
-  }
-
-  /**
-   * Render a custom SMS template with variables
-   */
-  private renderCustomTemplate(
-    template: string,
-    customer: { name?: string | null },
-    business: { name: string },
-    reviewLink: string,
-  ): string {
-    // Replace template variables with actual values
-    return template
-      .replace(/{customer_name}/g, customer.name || 'there')
-      .replace(/{business_name}/g, business.name)
-      .replace(/{review_link}/g, reviewLink);
   }
 }

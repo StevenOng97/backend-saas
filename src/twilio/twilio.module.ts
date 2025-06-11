@@ -1,5 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
-import { TwilioIsvService } from './twilio-isv.service';
+import { Module } from '@nestjs/common';
 import { TwilioClientService } from './twilio-client.service';
 import { ConfigModule } from '@nestjs/config';
 
@@ -7,7 +6,7 @@ import { ConfigModule } from '@nestjs/config';
   imports: [
     ConfigModule,
   ],
-  providers: [TwilioIsvService, TwilioClientService],
-  exports: [TwilioIsvService, TwilioClientService],
+  providers: [TwilioClientService],
+  exports: [TwilioClientService],
 })
 export class TwilioModule {} 
