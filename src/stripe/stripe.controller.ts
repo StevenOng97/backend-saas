@@ -72,12 +72,16 @@ export class StripeController {
           organizationId,
         );
 
+      const successUrl = `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/subscription/cancel`;
+      const testSuccessUrl = `http://localhost:8080/subscription/success?session_id={CHECKOUT_SESSION_ID}`
+      const testCancelUrl = `http://localhost:8080/subscription/cancel`
       // Create checkout session
       const session = await this.stripeService.createCheckoutSession({
         customerId: customer.id,
         priceId: priceId,
-        successUrl: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${this.configService.get('FRONTEND_URL') || 'http://localhost:3000'}/subscription/cancel`,
+        successUrl: testSuccessUrl,
+        cancelUrl: testCancelUrl,
         metadata: {
           userId: mockUser.id!,
           organizationId: organizationId,
