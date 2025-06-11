@@ -147,7 +147,7 @@ export class StripeController {
    * Get subscription status
    * Note: Add authentication middleware as needed
    */
-  @Get('subscription/:organizationId')
+  @Get('subscription')
   @UseGuards(JwtAuthGuard)
   async getSubscription(@CurrentUser() user: User) {
     try {
