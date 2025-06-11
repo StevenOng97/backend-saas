@@ -172,7 +172,9 @@ export class StripeController {
           currentPeriodStart: (subscription as any).current_period_start,
           currentPeriodEnd: (subscription as any).current_period_end,
           cancelAtPeriodEnd: (subscription as any).cancel_at_period_end,
-          trialEnd: (subscription as any).trial_end,
+          trialEnd: (subscription as any).trial_end 
+            ? new Date((subscription as any).trial_end * 1000).toISOString()
+            : null,
         },
       };
     } catch (error) {
