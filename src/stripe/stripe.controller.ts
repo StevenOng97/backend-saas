@@ -253,6 +253,8 @@ export class StripeController {
           plan.price > 0
             ? this.configService.get('stripe.defaultTrialDays') || 7
             : 0,
+        popular: plan.popular,
+        cta: plan.cta,
       })),
     };
   }

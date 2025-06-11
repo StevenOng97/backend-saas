@@ -13,6 +13,8 @@ export default registerAs('stripe', () => ({
       features: ['Basic features', '5 monthly invites', 'Email support'],
       inviteLimit: 1,
       description: 'Perfect for getting started',
+      cta: 'Start your free trial',
+      popular: false,
     },
     starter: {
       name: 'Starter',
@@ -21,6 +23,8 @@ export default registerAs('stripe', () => ({
       features: ['All basic features', '30 monthly invites', 'Email & chat support', '7-day free trial'],
       inviteLimit: 30,
       description: 'Great for small businesses',
+      cta: 'Start your free trial',
+      popular: false,
     },
     growth: {
       name: 'Growth',
@@ -29,6 +33,8 @@ export default registerAs('stripe', () => ({
       features: ['All starter features', '200 monthly invites', 'Advanced analytics', 'Priority support', '7-day free trial'],
       inviteLimit: 200,
       description: 'Perfect for growing businesses',
+      cta: 'Start your free trial',
+      popular: true,
     },
     pro: {
       name: 'Pro',
@@ -37,6 +43,8 @@ export default registerAs('stripe', () => ({
       features: ['All growth features', 'Unlimited invites', 'White-label options', 'Dedicated account manager', '7-day free trial'],
       inviteLimit: -1, // -1 represents unlimited
       description: 'For enterprise-level operations',
+      cta: 'Start your free trial',
+      popular: false,
     },
   },
   // Default trial period for all paid plans
