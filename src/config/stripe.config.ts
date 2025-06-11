@@ -6,16 +6,6 @@ export default registerAs('stripe', () => ({
   webhookEndpointSecret: process.env.STRIPE_WEBHOOK_SECRET,
   currency: process.env.STRIPE_CURRENCY || 'usd',
   plans: {
-    free: {
-      name: 'Free',
-      price: 0,
-      priceId: null, // No Stripe price ID for free plan
-      features: ['Basic features', '5 monthly invites', 'Email support'],
-      inviteLimit: 1,
-      description: 'Perfect for getting started',
-      cta: 'Start your free trial',
-      popular: false,
-    },
     starter: {
       name: 'Starter',
       price: 19,

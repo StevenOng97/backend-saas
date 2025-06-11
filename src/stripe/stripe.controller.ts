@@ -80,8 +80,8 @@ export class StripeController {
       const session = await this.stripeService.createCheckoutSession({
         customerId: customer.id,
         priceId: priceId,
-        successUrl: testSuccessUrl,
-        cancelUrl: testCancelUrl,
+        successUrl,
+        cancelUrl,
         metadata: {
           userId: mockUser.id!,
           organizationId: organizationId,
